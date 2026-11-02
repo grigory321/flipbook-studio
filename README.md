@@ -385,7 +385,6 @@ Issues and pull requests are welcome.
 ## Credits
 
 - [Zen Maru Gothic](https://github.com/googlefonts/zen-marugothic) by The Zen Project Authors, under the SIL Open Font License 1.1
-- Some feature ideas came from MemoAnima (GPL-3.0). FlipBook contains none of its code.
 
 ## License
 
@@ -733,7 +732,6 @@ Issue と Pull Request を歓迎します。
 ### クレジット
 
 - [Zen Maru Gothic](https://github.com/googlefonts/zen-marugothic)（The Zen Project Authors、SIL Open Font License 1.1）
-- MemoAnima（GPL-3.0）を機能の考え方の参考にしました。コードは含みません。
 
 ### ライセンス
 
