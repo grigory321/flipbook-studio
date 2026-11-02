@@ -1,0 +1,29 @@
+{
+  "name": "flipbook",
+  "version": "1.0.0",
+  "description": "Flipbook Studio: a flipbook animation app that trades files with DSi and 3DS",
+  "type": "module",
+  "license": "Unlicense",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,css,js}\" \"tests/**/*.ts\" \"scripts/**/*.mjs\" \"plugins/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.{ts,css,js}\" \"tests/**/*.ts\" \"scripts/**/*.mjs\" \"plugins/**/*.js\"",
+    "test": "node --test --experimental-test-isolation=none \"tests/**/*.test.ts\"",
+    "check": "npm run typecheck && npm run format:check && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@fontsource/zen-maru-gothic": "^5.3.1",
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.0",
+    "prettier": "^3.5.0",
+    "typescript": "^5.8.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grigory321/flipbook.git"
+  },
+  "homepage": "https://grigory321.github.io/flipbook/",
+  "private": true
+}

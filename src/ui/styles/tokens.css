@@ -1,0 +1,89 @@
+:root {
+  --orange-50: #fff7ec;
+  --orange-100: #ffecd6;
+  --orange-200: #ffd8ad;
+  --orange-300: #ffbc76;
+  --orange-400: #ffa040;
+  --orange-500: #ff8a1e;
+  --orange-600: #e36500;
+  --orange-700: #c25300;
+  --orange-800: #8f3d00;
+
+  --paper: #fffdf9;
+  --desk: #ffeedd;
+  --ink: #4b2a12;
+  --ink-soft: #7c5636;
+  --line: #f6dcbc;
+  --rule: #ffe9d2;
+  --margin-line: #ffbfa6;
+  --sheet-edge: #e3d3be;
+  --lcd: #4a2a10;
+
+  --sky: #3fa9f5;
+  --leaf: #2fbf72;
+  --berry: #f4497f;
+  --sun: #ffd23f;
+  --danger: #d9342b;
+
+  --radius-s: 10px;
+  --radius-m: 15px;
+  --radius-l: 24px;
+
+  --hit: 44px;
+  --top-height: 54px;
+  --guide-height: 30px;
+
+  --shadow-card: 0 2px 0 #fff inset, 0 6px 16px rgb(150 75 0 / 22%);
+  --shadow-screen: 0 5px 0 var(--orange-700), 0 12px 24px rgb(120 55 0 / 30%);
+
+  --lip: 0 3px 0 var(--orange-200);
+  --lip-strong: 0 3px 0 var(--orange-700);
+  --lip-on: 0 3px 0 var(--orange-800);
+  --fill-on: linear-gradient(#ec7306, var(--orange-600));
+
+  --ease-pop: cubic-bezier(0.3, 1.6, 0.5, 1);
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --font:
+    'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'BIZ UDPGothic',
+    'Yu Gothic UI', 'Segoe UI', system-ui, sans-serif;
+  --font-number: ui-monospace, 'SF Mono', Consolas, monospace;
+}
+
+:root,
+[data-kind='free'] {
+  --cover: var(--orange-500);
+  --cover-edge: var(--orange-700);
+  --tape: #ea6c12;
+  --tape-edge: #b9500a;
+}
+
+[data-kind='dsi'] {
+  --cover: #4a93d8;
+  --cover-edge: #2c6aa6;
+  --tape: #2f78c0;
+  --tape-edge: #1d5791;
+}
+
+[data-kind='3ds'] {
+  --cover: #e4566a;
+  --cover-edge: #b13448;
+  --tape: #cc3c52;
+  --tape-edge: #962536;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --hit: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

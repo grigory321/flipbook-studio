@@ -1,0 +1,11 @@
+{
+  "name": "うごくノート（Flipbook Studio）",
+  "short_name": "Flipbook",
+  "description": "DSi・3DS の実機と作品を行き来できる、パラパラまんがのソフト",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#ff8a1e",
+  "theme_color": "#ff8a1e",
+  "lang": "ja"
+}
