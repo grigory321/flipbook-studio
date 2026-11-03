@@ -36,16 +36,27 @@ export interface Saved {
 }
 
 export type Job =
-  | ({ kind: 'export'; format: ExportFormat; scale: number } & Saved)
+  | ({
+      kind: 'export'
+      format: ExportFormat
+      scale: number
+      hasLines: boolean
+    } & Saved)
   | ({
       kind: 'pages'
       first: number
       end: number
       digits: number
       scale: number
+      hasLines: boolean
     } & Saved)
   | { kind: 'zip'; entries: ZipEntry[]; title: string }
-  | ({ kind: 'still'; page: number; scale: number } & Saved)
+  | ({
+      kind: 'still'
+      page: number
+      scale: number
+      hasLines: boolean
+    } & Saved)
   | ({ kind: 'import'; file: File } & Saved)
   | ({ kind: 'compact' } & Saved)
   | {
@@ -87,9 +98,15 @@ export interface JobRunner {
     note: Note,
     format: ExportFormat,
     scale: number,
+    hasLines: boolean,
     onProgress: (ratio: number) => void,
   ): Promise<ExportFile>
-  stillOf(note: Note, page: number, scale: number): Promise<Blob>
+  stillOf(
+    note: Note,
+    page: number,
+    scale: number,
+    hasLines: boolean,
+  ): Promise<Blob>
   readNoteFile(file: File, store: Store): Promise<Note>
 }
 
@@ -133,22 +150,26 @@ function readJob(value: unknown): Job | undefined {
 
   switch (value.kind) {
     case 'export': {
-      const { format, scale } = value
+      const { format, scale, hasLines } = value
 
-      return saved && isExportFormat(format) && isNumber(scale)
-        ? { kind: 'export', format, scale, ...saved }
+      return saved &&
+        isExportFormat(format) &&
+        isNumber(scale) &&
+        isBoolean(hasLines)
+        ? { kind: 'export', format, scale, hasLines, ...saved }
         : undefined
     }
 
     case 'pages': {
-      const { first, end, digits, scale } = value
+      const { first, end, digits, scale, hasLines } = value
 
       return saved &&
         isNumber(first) &&
         isNumber(end) &&
         isNumber(digits) &&
-        isNumber(scale)
-        ? { kind: 'pages', first, end, digits, scale, ...saved }
+        isNumber(scale) &&
+        isBoolean(hasLines)
+        ? { kind: 'pages', first, end, digits, scale, hasLines, ...saved }
         : undefined
     }
 
@@ -158,10 +179,10 @@ function readJob(value: unknown): Job | undefined {
         : undefined
 
     case 'still': {
-      const { page, scale } = value
+      const { page, scale, hasLines } = value
 
-      return saved && isNumber(page) && isNumber(scale)
-        ? { kind: 'still', page, scale, ...saved }
+      return saved && isNumber(page) && isNumber(scale) && isBoolean(hasLines)
+        ? { kind: 'still', page, scale, hasLines, ...saved }
         : undefined
     }
 

@@ -13,8 +13,15 @@ function coreExporter(
   return {
     id: format,
     ...fields,
-    run: ({ note, scale, saved, onProgress }) =>
-      exportInBackground(note, saved ?? null, format, scale ?? 1, onProgress),
+    run: ({ note, scale, hasLines, saved, onProgress }) =>
+      exportInBackground(
+        note,
+        saved ?? null,
+        format,
+        scale ?? 1,
+        hasLines ?? false,
+        onProgress,
+      ),
   }
 }
 

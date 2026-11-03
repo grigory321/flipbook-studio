@@ -18,6 +18,8 @@ const STORAGE_KEY = 'flipbook.settings'
 
 export type Hand = 'right' | 'left'
 
+export type PaperLook = 'notebook' | 'plain'
+
 export interface StoredShape {
   id: MyShapeKind
   points: [number, number][]
@@ -95,12 +97,18 @@ export const settings = {
   drawSounds: setting('drawSounds', parseWith(isBoolean), true),
   sfxVolume: setting('sfxVolume', parseWith(isNumber), 6),
   hand: setting('hand', parseWith(oneOf<Hand>(['right', 'left'])), 'right'),
+  paperLook: setting(
+    'paperLook',
+    parseWith(oneOf<PaperLook>(['notebook', 'plain'])),
+    'notebook',
+  ),
   stabilizer: setting('stabilizer', parseWith(isNumber), 2),
   smoothLines: setting('smoothLines', parseWith(isBoolean), true),
   penPressure: setting('penPressure', parseWith(isBoolean), true),
   onionBefore: setting('onionBefore', parseOnion, 1),
   onionAfter: setting('onionAfter', parseOnion, 1),
   skipTitle: setting('skipTitle', parseWith(isBoolean), false),
+  exportLines: setting('exportLines', parseWith(isBoolean), false),
   stepSounds: setting('stepSounds', parseWith(isBoolean), true),
   seenTips: setting('seenTips', parseWith(isBoolean), false),
   panelFolded: setting('panelFolded', parseWith(isBoolean), true),

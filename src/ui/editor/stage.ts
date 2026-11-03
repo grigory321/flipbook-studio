@@ -9,7 +9,7 @@ import type { Tool, ToolPoint } from '../../app/tools.ts'
 import { Compositor, type Region } from '../../core/compositor.ts'
 import { Signal } from '../../core/signal.ts'
 import { t } from '../../i18n/index.ts'
-import { eventElement, h, key, Scope, setPressed } from '../dom.ts'
+import { eventElement, h, key, Scope, setPressed, SVG_NS } from '../dom.ts'
 import { openMenu, toast } from '../overlay.ts'
 import {
   playSfx,
@@ -30,12 +30,12 @@ const ONION_AFTER = 0xa87fff
 const ONION_ALPHA = 0x80
 const FIT_MARGIN = 28
 const BINDING_ROOM = 8
+const STACK_SHOWN = 20
 const PAN_KEEP = 56
 const FLIP_MIN_INTERVAL_MS = 90
 const SCRIBBLE_FULL_SPEED = 1.6
 const SCRIBBLE_DECAY = 0.75
 const GRAIN_SIZE = 96
-const SVG_NS = 'http://www.w3.org/2000/svg'
 const FRAME_DOTS = 9
 const FRAME_STEM = 26
 const POINTER_REACH = 12
@@ -183,14 +183,7 @@ export class Stage {
 
     const holder = this.holder
 
-    holder.append(
-      h('div', { class: 'page-cover' }),
-      this.sheets,
-      this.underCanvas,
-      this.page,
-      this.curl.element,
-      h('div', { class: 'page-binding' }),
-    )
+    holder.append(this.sheets, this.underCanvas, this.page, this.curl.element)
     holder.dataset.kind = editor.note.profile.id
     holder.style.setProperty('--page-width', `${width}px`)
     holder.style.setProperty('--page-height', `${height}px`)
@@ -455,6 +448,7 @@ export class Stage {
       const flip = this.prepareFlip(page)
 
       this.renderFull()
+      if (flip !== 'forward') this.showSpread(page)
       if (flip) this.playFlip(flip)
     })
 
@@ -473,6 +467,13 @@ export class Stage {
       this.element.classList.toggle('is-dot', isDot)
       this.dotGrid.hidden = !isVisible
       this.dotGrid.style.setProperty('--cell', `${size}px`)
+    })
+
+    this.scope.effect(() => {
+      this.element.classList.toggle(
+        'is-plain',
+        settings.paperLook.value === 'plain',
+      )
     })
 
     this.scope.effect(() => {
@@ -514,11 +515,16 @@ export class Stage {
 
   private showPaperStyle(): void {
     const { meta } = this.editor.note
-    const stack = 1 + Math.min(4, Math.floor(this.editor.pageCount / 8))
 
     this.page.dataset.paper = meta.paperStyle
     this.underCanvas.dataset.paper = meta.paperStyle
-    this.sheets.style.setProperty('--stack', String(stack))
+    this.showSpread(this.editor.page.peek())
+  }
+
+  private showSpread(page: number): void {
+    const after = Math.min(STACK_SHOWN, this.editor.pageCount - page - 1)
+
+    this.holder.style.setProperty('--after', String(after))
   }
 
   private prepareFlip(page: number): CurlDirection | null {
@@ -567,6 +573,8 @@ export class Stage {
     this.curl.play(direction, () => {
       this.page.style.visibility = ''
       this.underCanvas.hidden = true
+
+      if (direction === 'forward') this.showSpread(this.editor.page.peek())
     })
   }
 
@@ -1316,10 +1324,10 @@ function paperGrain(): string {
   for (let index = 0; index < image.data.length; index += 4) {
     const shade = 90 + Math.random() * 70
 
-    image.data[index] = shade + 40
-    image.data[index + 1] = shade + 20
+    image.data[index] = shade + 8
+    image.data[index + 1] = shade + 6
     image.data[index + 2] = shade
-    image.data[index + 3] = Math.random() * 9
+    image.data[index + 3] = Math.random() * 11
   }
 
   context.putImageData(image, 0, 0)

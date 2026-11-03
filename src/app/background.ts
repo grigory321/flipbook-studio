@@ -215,6 +215,7 @@ async function exportPagesInParallel(
   title: string,
   count: number,
   scale: number,
+  hasLines: boolean,
   onProgress: (ratio: number) => void,
 ): Promise<ExportFile> {
   const parts = Math.min(poolSize(), Math.ceil(count / PAGES_PER_WORKER))
@@ -229,7 +230,16 @@ async function exportPagesInParallel(
       const end = Math.min(count, first + size)
 
       return runJob(
-        { kind: 'pages', first, end, digits, scale, ...saved, budget },
+        {
+          kind: 'pages',
+          first,
+          end,
+          digits,
+          scale,
+          hasLines,
+          ...saved,
+          budget,
+        },
         ratio => {
           done[part] = ratio * (end - first)
           onProgress(
@@ -258,10 +268,17 @@ export async function exportInBackground(
   saved: Saved | null,
   format: ExportFormat,
   scale: number,
+  hasLines: boolean,
   onProgress: (ratio: number) => void,
 ): Promise<ExportFile> {
-  if (!saved) {
-    return (await localRunner()).exportNote(note, format, scale, onProgress)
+  if (!saved || format === 'mp4') {
+    return (await localRunner()).exportNote(
+      note,
+      format,
+      scale,
+      hasLines,
+      onProgress,
+    )
   }
 
   const count = note.frames.count
@@ -272,21 +289,26 @@ export async function exportInBackground(
       note.meta.title,
       count,
       scale,
+      hasLines,
       onProgress,
     )
   }
 
-  return exportSaved(saved, format, scale, onProgress)
+  return exportSaved(saved, format, scale, hasLines, onProgress)
 }
 
 export async function exportSaved(
   saved: Saved,
   format: ExportFormat,
   scale: number,
+  hasLines: boolean,
   onProgress: (ratio: number) => void,
 ): Promise<ExportFile> {
   return fileOf(
-    await runJob({ kind: 'export', format, scale, ...saved }, onProgress),
+    await runJob(
+      { kind: 'export', format, scale, hasLines, ...saved },
+      onProgress,
+    ),
   )
 }
 
@@ -295,10 +317,19 @@ export async function stillInBackground(
   saved: Saved | null,
   page: number,
   scale: number,
+  hasLines: boolean,
 ): Promise<Blob> {
-  if (!saved) return (await localRunner()).stillOf(note, page, scale)
+  if (!saved) {
+    return (await localRunner()).stillOf(note, page, scale, hasLines)
+  }
 
-  const result = await runJob({ kind: 'still', page, scale, ...saved })
+  const result = await runJob({
+    kind: 'still',
+    page,
+    scale,
+    hasLines,
+    ...saved,
+  })
 
   if (result.kind !== 'blob') throw new Error('画像を作れません')
 

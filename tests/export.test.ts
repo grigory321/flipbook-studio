@@ -41,7 +41,7 @@ test('書き出し: APNG はコマの数と順番がそろい、CRC が合う', 
   editor.duplicatePage()
   editor.addPages()
 
-  const chunks = await pngChunks(await encodeApng(note, 2, () => {}))
+  const chunks = await pngChunks(await encodeApng(note, 2, false, () => {}))
   const control = chunks.get('acTL')?.[0]
 
   assert.ok(control)
@@ -63,7 +63,7 @@ test('書き出し: APNG はコマの数と順番がそろい、CRC が合う', 
 
 test('書き出し: 1 コマの PNG は倍率の大きさになる', async () => {
   const note = Note.create({ title: 't', profile: 'dsi' })
-  const chunks = await pngChunks(await encodePagePng(note, 0, 4))
+  const chunks = await pngChunks(await encodePagePng(note, 0, 4, false))
   const header = chunks.get('IHDR')?.[0]
 
   assert.ok(header)
@@ -85,7 +85,7 @@ test('書き出し: GIF はページの数だけ絵が入り、最後まで読�
   editor.duplicatePage()
   editor.addPages()
 
-  const blob = await encodeGif(note, 1, () => {})
+  const blob = await encodeGif(note, 1, false, () => {})
   const bytes = new Uint8Array(await blob.arrayBuffer())
   const tableBytes = 3 * (2 << (bytes[10] & 7))
   let offset = 13 + tableBytes
@@ -121,7 +121,7 @@ test('書き出し: 連番画像にはページの数だけ PNG が入る', asyn
 
   for (let page = 1; page < 5; page++) note.frames.insertBlank(page, 0)
 
-  const file = await exportNote(note, 'png', 1, () => {})
+  const file = await exportNote(note, 'png', 1, false, () => {})
   const bytes = new Uint8Array(await file.blob.arrayBuffer())
   const view = new DataView(bytes.buffer)
   const firstName = new TextDecoder().decode(bytes.subarray(30, 35))

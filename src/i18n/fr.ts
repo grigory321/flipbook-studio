@@ -223,6 +223,8 @@ export const fr = {
   'export.warn.overSize': 'Trop lourd pour la console',
   'export.warn.memoryFull': 'Trop de données pour continuer sur la console',
   'export.warn.converted': 'Converti aux couleurs de la console',
+  'export.warn.noSound':
+    'Cet appareil ne peut pas ajouter le son : la vidéo a été enregistrée sans son',
 
   'panel.title': 'Panneau',
   'panel.pen': 'Stylo',
@@ -288,6 +290,9 @@ export const fr = {
   'settings.hand': 'Main principale',
   'settings.hand.right': 'Droite',
   'settings.hand.left': 'Gauche',
+  'settings.paper': 'Aspect du papier',
+  'settings.paper.notebook': 'Cahier',
+  'settings.paper.plain': 'Toile seule',
   'settings.onion': 'Pages voisines',
   'settings.onionBefore': 'Page précédente',
   'settings.onionAfter': 'Page suivante',
@@ -442,6 +447,7 @@ export const fr = {
   'text.font.mincho': 'Serif',
   'text.font.hand': 'Manuscrit',
   'export.scale': 'Échelle',
+  'export.lines': 'Inclure les lignes et le quadrillage',
   'export.still': 'Enregistrer cette page en image',
   'export.apng': 'PNG animé',
   'export.apngDetail': 'Image animée aux couleurs exactes',

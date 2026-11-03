@@ -223,6 +223,8 @@ export const es = {
   'export.warn.overSize': 'Demasiado grande para abrir en la consola',
   'export.warn.memoryFull': 'Demasiados datos para seguir en la consola',
   'export.warn.converted': 'Convertido a los colores de la consola',
+  'export.warn.noSound':
+    'Este dispositivo no puede añadir sonido; el video se guardó sin sonido',
 
   'panel.title': 'Panel',
   'panel.pen': 'Pluma',
@@ -288,6 +290,9 @@ export const es = {
   'settings.hand': 'Mano dominante',
   'settings.hand.right': 'Derecha',
   'settings.hand.left': 'Izquierda',
+  'settings.paper': 'Aspecto del papel',
+  'settings.paper.notebook': 'Cuaderno',
+  'settings.paper.plain': 'Solo el lienzo',
   'settings.onion': 'Páginas cercanas',
   'settings.onionBefore': 'Página anterior',
   'settings.onionAfter': 'Página siguiente',
@@ -442,6 +447,7 @@ export const es = {
   'text.font.mincho': 'Serif',
   'text.font.hand': 'Manual',
   'export.scale': 'Escala',
+  'export.lines': 'Incluir renglones y cuadrícula',
   'export.still': 'Guardar esta página como imagen',
   'export.apng': 'PNG animado',
   'export.apngDetail': 'Imagen animada con colores exactos',

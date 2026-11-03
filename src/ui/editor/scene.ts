@@ -46,13 +46,11 @@ const SAVE_ICONS: Readonly<Record<SaveState, string>> = {
   failed: 'alert',
 }
 
-const PHONE_QUERY = '(max-width: 720px), (max-height: 520px)'
+const PHONE_LAYOUT_QUERY = '(max-width: 559px)'
 const ONE_BAR_QUERY = '(max-height: 520px) and (min-width: 560px)'
 const MORE_TOOLS_FROM = 60
 const TOOL_GROUP = 10
 const SHEET_QUERY = '(max-width: 1080px), (max-height: 520px)'
-const TOOL_TABS_QUERY =
-  '(min-width: 721px) and (max-width: 1080px) and (min-height: 521px), (max-height: 520px) and (min-width: 560px)'
 const STRIP_CLOSED_QUERY =
   '(max-height: 520px), (min-width: 721px) and (max-width: 1180px), (min-width: 721px) and (pointer: coarse)'
 
@@ -105,16 +103,16 @@ export function editorScene(app: App, note: Note, onExit: () => void): Scene {
   const isSheetOpen = new Signal(false)
   const activeTab = new Signal<string>('pen')
   const sheetQuery = matchMedia(SHEET_QUERY)
-  const toolTabsQuery = matchMedia(TOOL_TABS_QUERY)
+  const phoneQuery = matchMedia(PHONE_LAYOUT_QUERY)
+  const oneBarQuery = matchMedia(ONE_BAR_QUERY)
+  const isPhone = (): boolean => phoneQuery.matches
+  const isOneBar = (): boolean => oneBarQuery.matches
   const isSheet = (): boolean =>
     sheetQuery.matches || settings.panelFolded.peek()
 
   const compactView = matchMedia(STRIP_CLOSED_QUERY)
   const stripShown = new Signal(!compactView.matches)
-  const soundRowsShown = new Signal(
-    note.meta.tracks.some(track => track.soundId) &&
-      !matchMedia(PHONE_QUERY).matches,
-  )
+  const soundRowsShown = new Signal(false)
 
   const onViewChange = (event: MediaQueryListEvent): void => {
     stripShown.value = !event.matches
@@ -920,6 +918,7 @@ export function editorScene(app: App, note: Note, onExit: () => void): Scene {
     variant: 'ghost',
     onPress: () => {
       stripShown.value = !stripShown.peek()
+      soundRowsShown.value = false
     },
   })
 
@@ -990,10 +989,8 @@ export function editorScene(app: App, note: Note, onExit: () => void): Scene {
     }),
   )
 
-  const oneBar = matchMedia(ONE_BAR_QUERY)
-
   const placeTopKeys = (): void => {
-    if (oneBar.matches) {
+    if (isOneBar()) {
       transport.prepend(backKey, saveMark, menuKey, undoButton, redoButton)
       transport.append(exportKey)
     } else {
@@ -1010,10 +1007,6 @@ export function editorScene(app: App, note: Note, onExit: () => void): Scene {
       )
     }
   }
-
-  placeTopKeys()
-  oneBar.addEventListener('change', placeTopKeys)
-  scope.add(() => oneBar.removeEventListener('change', placeTopKeys))
 
   const bottom = h('section', { class: 'ed-bottom' }, transport, strip.element)
 
@@ -1047,14 +1040,12 @@ export function editorScene(app: App, note: Note, onExit: () => void): Scene {
   })
 
   const showPanelLayout = (): void => {
-    const isFoldedWide = !sheetQuery.matches && settings.panelFolded.peek()
-
     element.classList.toggle('is-sheet', isSheet())
-    element.classList.toggle(
-      'is-tool-tabs',
-      toolTabsQuery.matches || isFoldedWide,
-    )
+    element.classList.toggle('is-tool-tabs', isSheet() && !isPhone())
+    element.classList.toggle('is-phone', isPhone())
+    element.classList.toggle('is-one-bar', isOneBar())
     panelKey.hidden = sheetQuery.matches
+    placeTopKeys()
   }
 
   scope.effect(() => {
@@ -1067,7 +1058,7 @@ export function editorScene(app: App, note: Note, onExit: () => void): Scene {
     showPanelLayout()
   })
 
-  for (const query of [sheetQuery, toolTabsQuery]) {
+  for (const query of [sheetQuery, phoneQuery, oneBarQuery]) {
     query.addEventListener('change', showPanelLayout)
     scope.add(() => query.removeEventListener('change', showPanelLayout))
   }

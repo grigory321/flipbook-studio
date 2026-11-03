@@ -36,6 +36,7 @@ export function makeCard(note: Note): NoteCard {
     height: meta.height,
     modified: meta.modified,
     fps: note.fps,
+    paperStyle: meta.paperStyle,
     cover: new Uint8Array(cover.buffer),
   }
 }

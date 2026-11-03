@@ -9,6 +9,7 @@ import type { Saved } from '../worker/protocol.ts'
 
 export interface ExportContext {
   scale?: number
+  hasLines?: boolean
   note: Note
   saved?: Saved
   onProgress: (ratio: number) => void

@@ -141,7 +141,7 @@ function stackOf(pages: number): number {
 }
 
 function coverCanvas(card: NoteCard): HTMLCanvasElement {
-  const canvas = h('canvas', { class: 'card-cover', width: 80, height: 60 })
+  const canvas = h('canvas', { class: 'card-thumb', width: 80, height: 60 })
 
   if (card.cover) {
     const pixels = new Uint8ClampedArray(card.cover.slice().buffer)
@@ -268,6 +268,7 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
         session.savedAs(card.id),
         'ugb',
         1,
+        false,
         ratio => progress.set(ratio),
       )
 
@@ -314,15 +315,24 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
               else select(card)
             },
           },
-          h('span', { class: 'card-binding' }),
           h(
             'span',
-            { class: 'card-page' },
-            h('span', { class: 'card-sheet' }, coverCanvas(card)),
+            { class: 'card-cover' },
+            h('span', { class: 'card-spine' }),
             h(
               'span',
-              { class: 'card-title' },
-              card.title || t('home.untitled'),
+              { class: 'card-picture', 'data-paper': card.paperStyle },
+              coverCanvas(card),
+            ),
+            h(
+              'span',
+              { class: 'card-label' },
+              h('span', { class: 'card-number' }, 'No.'),
+              h(
+                'span',
+                { class: 'card-title' },
+                card.title || t('home.untitled'),
+              ),
             ),
           ),
         ),

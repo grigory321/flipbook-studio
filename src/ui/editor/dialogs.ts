@@ -8,7 +8,7 @@ import { registries, type Exporter } from '../../plugin/host.ts'
 import { saveFile } from '../app.ts'
 import { fill, h, icon, key } from '../dom.ts'
 import { openDialog, openProgress, toast } from '../overlay.ts'
-import { toggleRow } from '../controls.ts'
+import { settingToggle, toggleRow } from '../controls.ts'
 
 function exporterLabel(exporter: Exporter, field: 'name' | 'detail'): string {
   const translationKey =
@@ -91,6 +91,7 @@ export function openExportDialog(editor: Editor, session: Session): void {
       const result = await exporter.run({
         note: editor.note,
         scale: exporter.isScalable ? scale : undefined,
+        hasLines: settings.exportLines.peek(),
         saved: saved ?? undefined,
         onProgress: ratio => progress.set(ratio),
       })
@@ -147,6 +148,9 @@ export function openExportDialog(editor: Editor, session: Session): void {
         h('span', { class: 'field-label' }, t('export.scale')),
         scaleRow,
       ),
+      editor.note.meta.paperStyle === 'plain'
+        ? null
+        : settingToggle(t('export.lines'), settings.exportLines),
       h('div', { class: 'export-list' }, rows),
       key({
         icon: 'image',
@@ -167,7 +171,13 @@ export function openExportDialog(editor: Editor, session: Session): void {
     const saved = await session.savedCopy(editor.note)
 
     saveFile(
-      await stillInBackground(editor.note, saved, page, scale),
+      await stillInBackground(
+        editor.note,
+        saved,
+        page,
+        scale,
+        settings.exportLines.peek(),
+      ),
       `${name}_p${number}.png`,
     )
     toast(t('export.done'))

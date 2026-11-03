@@ -1,4 +1,5 @@
 import { ONION_MAX, settings } from '../app/settings.ts'
+import type { Signal } from '../core/signal.ts'
 import {
   detectLanguage,
   language,
@@ -60,28 +61,31 @@ function languageRow(dialog: () => DialogHandle | null): HTMLElement {
   )
 }
 
-function handRow(): HTMLElement {
+function choiceRow<T extends string>(
+  setting: Signal<T>,
+  options: readonly (readonly [T, string])[],
+): HTMLElement {
   const row = h('div', { class: 'chip-row' })
 
   const render = (): void => {
-    const current = settings.hand.peek()
+    const current = setting.peek()
 
     fill(
       row,
-      (['right', 'left'] as const).map(hand =>
+      options.map(([value, label]) =>
         h(
           'button',
           {
             class: 'chip',
             type: 'button',
             'data-nav': true,
-            'aria-pressed': String(hand === current),
+            'aria-pressed': String(value === current),
             onClick: () => {
-              settings.hand.value = hand
+              setting.value = value
               render()
             },
           },
-          t(`settings.hand.${hand}`),
+          label,
         ),
       ),
     )
@@ -204,7 +208,15 @@ export function openAppSettings(app: App): void {
         max: 10,
       }),
       h('h3', { class: 'field-label' }, t('settings.hand')),
-      handRow(),
+      choiceRow(settings.hand, [
+        ['right', t('settings.hand.right')],
+        ['left', t('settings.hand.left')],
+      ]),
+      h('h3', { class: 'field-label' }, t('settings.paper')),
+      choiceRow(settings.paperLook, [
+        ['notebook', t('settings.paper.notebook')],
+        ['plain', t('settings.paper.plain')],
+      ]),
       h('h3', { class: 'field-label' }, t('settings.onion')),
       settingSlider(
         t('settings.onionBefore'),

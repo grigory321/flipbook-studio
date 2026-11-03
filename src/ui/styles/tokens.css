@@ -16,7 +16,6 @@
   --line: #f6dcbc;
   --rule: #ffe9d2;
   --margin-line: #ffbfa6;
-  --sheet-edge: #e3d3be;
   --lcd: #4a2a10;
 
   --sky: #3fa9f5;
@@ -33,12 +32,15 @@
   --top-height: 54px;
   --guide-height: 30px;
 
-  --shadow-card: 0 2px 0 #fff inset, 0 6px 16px rgb(150 75 0 / 22%);
   --shadow-screen: 0 5px 0 var(--orange-700), 0 12px 24px rgb(120 55 0 / 30%);
 
   --lip: 0 3px 0 var(--orange-200);
   --lip-strong: 0 3px 0 var(--orange-700);
   --lip-on: 0 3px 0 var(--orange-800);
+  --paper-line: rgb(92 136 196 / 34%);
+  --paper-dot: rgb(72 116 182 / 62%);
+  --paper-grid: rgb(92 136 196 / 24%);
+  --paper-dots: rgb(96 120 160 / 46%);
   --fill-on: linear-gradient(#ec7306, var(--orange-600));
 
   --ease-pop: cubic-bezier(0.3, 1.6, 0.5, 1);
@@ -53,23 +55,20 @@
 :root,
 [data-kind='free'] {
   --cover: var(--orange-500);
-  --cover-edge: var(--orange-700);
   --tape: #ea6c12;
-  --tape-edge: #b9500a;
+  --tape-edge: var(--orange-700);
 }
 
 [data-kind='dsi'] {
-  --cover: #4a93d8;
-  --cover-edge: #2c6aa6;
-  --tape: #2f78c0;
-  --tape-edge: #1d5791;
+  --cover: var(--sky);
+  --tape: #2f8fd8;
+  --tape-edge: #1f6fb0;
 }
 
 [data-kind='3ds'] {
-  --cover: #e4566a;
-  --cover-edge: #b13448;
-  --tape: #cc3c52;
-  --tape-edge: #962536;
+  --cover: var(--berry);
+  --tape: #e0386c;
+  --tape-edge: #b8264f;
 }
 
 @media (pointer: coarse) {

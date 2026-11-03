@@ -2,25 +2,17 @@ import { settings } from '../app/settings.ts'
 import { t } from '../i18n/index.ts'
 import type { Scene } from './app.ts'
 import { h } from './dom.ts'
+import { mascot } from './mascot.ts'
 import { playSfx, unlockSfx } from './sfx.ts'
 
 export interface TitleCallbacks {
   onStart: () => void
 }
 
-function flippingBook(): HTMLElement {
-  return h(
-    'div',
-    { class: 'title-book', 'aria-hidden': 'true' },
-    h('span', { class: 'title-sheet is-base' }),
-    [0, 1, 2].map(index =>
-      h('span', { class: 'title-sheet', style: `--index:${index}` }),
-    ),
-  )
-}
-
 export function titleScene(callbacks: TitleCallbacks): Scene {
   let hasStarted = false
+
+  const newt = mascot()
 
   const start = (): void => {
     if (hasStarted) return
@@ -72,7 +64,7 @@ export function titleScene(callbacks: TitleCallbacks): Scene {
     h(
       'div',
       { class: 'title-center' },
-      flippingBook(),
+      newt.element,
       h('h1', { class: 'title-logo', 'aria-label': name }, letters),
       h('p', { class: 'title-sub' }, t('app.subtitle')),
       startButton,
@@ -90,7 +82,10 @@ export function titleScene(callbacks: TitleCallbacks): Scene {
   return {
     element,
     initialFocus: () => startButton,
-    dispose: () => window.removeEventListener('keydown', onKey),
+    dispose: () => {
+      window.removeEventListener('keydown', onKey)
+      newt.dispose()
+    },
   }
 }
 

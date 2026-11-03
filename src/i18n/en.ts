@@ -222,6 +222,8 @@ export const en = {
   'export.warn.overSize': 'Too large to open on the console',
   'export.warn.memoryFull': 'Too much data to keep drawing on the console',
   'export.warn.converted': 'Converted to console colors',
+  'export.warn.noSound':
+    "This device can't add sound, so the video was saved without it",
 
   'panel.title': 'Panel',
   'panel.pen': 'Pen',
@@ -287,6 +289,9 @@ export const en = {
   'settings.hand': 'Main hand',
   'settings.hand.right': 'Right',
   'settings.hand.left': 'Left',
+  'settings.paper': 'Paper look',
+  'settings.paper.notebook': 'Notebook',
+  'settings.paper.plain': 'Canvas only',
   'settings.onion': 'Nearby pages',
   'settings.onionBefore': 'Previous page',
   'settings.onionAfter': 'Next page',
@@ -441,6 +446,7 @@ export const en = {
   'text.font.mincho': 'Serif',
   'text.font.hand': 'Hand',
   'export.scale': 'Scale',
+  'export.lines': 'Include ruled lines and grid',
   'export.still': 'Save this page as a picture',
   'export.apng': 'Animated PNG',
   'export.apngDetail': 'Moving picture with exact colors',

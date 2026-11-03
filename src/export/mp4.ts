@@ -2,8 +2,8 @@ import { ByteWriter } from '../core/bytes.ts'
 import { blendOver } from '../core/ink.ts'
 import { Compositor } from '../core/compositor.ts'
 import type { Note } from '../core/note.ts'
-import { rgbaWord } from '../core/profile.ts'
 import { Yielder } from '../core/yielder.ts'
+import { Backdrop } from './backdrop.ts'
 import { BlobBuilder } from './blob-builder.ts'
 import { Mixdown } from './wav.ts'
 
@@ -15,12 +15,26 @@ const AUDIO_BITRATE = 128_000
 const KEY_INTERVAL = 60
 const QUEUE_LIMIT = 8
 
-const CODECS = ['avc1.640028', 'avc1.4D0028', 'avc1.42001F', 'avc1.42E01F']
+const CODECS = ['avc1.42E01F', 'avc1.42001F', 'avc1.4D401F', 'avc1.640028']
+const ACCELERATIONS: readonly HardwareAcceleration[] = [
+  'prefer-software',
+  'no-preference',
+]
 
 interface Sample {
   size: number
   isKey: boolean
   duration: number
+}
+
+interface EncodeState {
+  description: Uint8Array | null
+  error: DOMException | null
+}
+
+export interface Mp4File {
+  blob: Blob
+  isMuted: boolean
 }
 
 interface TrackData {
@@ -329,7 +343,7 @@ function drawScaled(
   sourceWidth: number,
   sourceHeight: number,
   scale: number,
-  paper: number,
+  backdrop: Uint32Array,
   target: Uint32Array,
 ): void {
   const width = sourceWidth * scale
@@ -338,7 +352,8 @@ function drawScaled(
     const rowStart = y * scale * width
 
     for (let x = 0; x < sourceWidth; x++) {
-      const word = blendOver(source[y * sourceWidth + x], paper)
+      const index = y * sourceWidth + x
+      const word = blendOver(source[index], backdrop[index])
 
       target.fill(word, rowStart + x * scale, rowStart + (x + 1) * scale)
     }
@@ -349,41 +364,74 @@ function drawScaled(
   }
 }
 
-async function chooseCodec(
+async function codecChoices(
   width: number,
   height: number,
   framerate: number,
-): Promise<VideoEncoderConfig> {
+): Promise<VideoEncoderConfig[]> {
+  const choices: VideoEncoderConfig[] = []
+
   for (const codec of CODECS) {
-    const config: VideoEncoderConfig = {
-      codec,
-      width,
-      height,
-      framerate,
-      bitrate: VIDEO_BITRATE,
-      avc: { format: 'avc' },
+    for (const hardwareAcceleration of ACCELERATIONS) {
+      const config: VideoEncoderConfig = {
+        codec,
+        width,
+        height,
+        framerate,
+        bitrate: VIDEO_BITRATE,
+        hardwareAcceleration,
+        avc: { format: 'avc' },
+      }
+      const support = await VideoEncoder.isConfigSupported(config).catch(
+        () => null,
+      )
+
+      if (support?.supported) choices.push(config)
     }
-
-    const support = await VideoEncoder.isConfigSupported(config)
-
-    if (support.supported) return config
   }
 
-  throw new Error('この端末は H.264 の動画を作れません')
+  return choices
 }
 
 async function encodeVideo(
   note: Note,
   scale: number,
+  hasLines: boolean,
   onProgress: (ratio: number) => void,
 ): Promise<TrackData> {
-  const { frames, meta, profile } = note
-  const width = meta.width * scale
-  const height = meta.height * scale
+  const { width, height } = note.meta
+  const choices = await codecChoices(
+    width * scale,
+    height * scale,
+    Math.max(1, note.fps),
+  )
+  let failure: unknown = new Error('この端末は H.264 の動画を作れません')
+
+  for (const config of choices) {
+    try {
+      return await encodeVideoWith(note, config, scale, hasLines, onProgress)
+    } catch (error) {
+      failure = error
+    }
+  }
+
+  throw failure
+}
+
+async function encodeVideoWith(
+  note: Note,
+  config: VideoEncoderConfig,
+  scale: number,
+  hasLines: boolean,
+  onProgress: (ratio: number) => void,
+): Promise<TrackData> {
+  const { frames, meta } = note
+  const { width, height } = config
+  const backdrop = new Backdrop(note, hasLines)
   const samples: Sample[] = []
   const data = new BlobBuilder()
   const duration = Math.round(TIMESCALE / note.fps)
-  let config: Uint8Array | null = null
+  const state: EncodeState = { description: null, error: null }
 
   const encoder = new VideoEncoder({
     output: (chunk, metadata) => {
@@ -395,59 +443,65 @@ async function encodeVideo(
       })
 
       if (metadata?.decoderConfig?.description) {
-        config = toBytes(metadata.decoderConfig.description)
+        state.description = toBytes(metadata.decoderConfig.description)
       }
     },
     error: error => {
-      throw error
+      state.error = error
     },
   })
 
-  encoder.configure(await chooseCodec(width, height, note.fps))
+  try {
+    encoder.configure(config)
 
-  const compositor = new Compositor(note)
-  const pixels = new Uint32Array(width * height)
-  const yielder = new Yielder()
+    const compositor = new Compositor(note)
+    const pixels = new Uint32Array(width * height)
+    const yielder = new Yielder()
 
-  for (let page = 0; page < frames.count; page++) {
-    await note.ensurePages(page, 1)
-    compositor.composePage(page)
+    for (let page = 0; page < frames.count; page++) {
+      await note.ensurePages(page, 1)
+      compositor.composePage(page)
 
-    drawScaled(
-      compositor.pixels,
-      meta.width,
-      meta.height,
-      scale,
-      rgbaWord(profile.papers[frames.paper(page)] ?? profile.papers[0]),
-      pixels,
-    )
+      drawScaled(
+        compositor.pixels,
+        meta.width,
+        meta.height,
+        scale,
+        backdrop.of(page),
+        pixels,
+      )
 
-    const frame = new VideoFrame(pixels, {
-      format: 'RGBA',
-      codedWidth: width,
-      codedHeight: height,
-      timestamp: Math.round((page / note.fps) * 1_000_000),
-      duration: Math.round(1_000_000 / note.fps),
-    })
+      const frame = new VideoFrame(pixels, {
+        format: 'RGBA',
+        codedWidth: width,
+        codedHeight: height,
+        timestamp: Math.round((page / note.fps) * 1_000_000),
+        duration: Math.round(1_000_000 / note.fps),
+      })
 
-    encoder.encode(frame, { keyFrame: page % KEY_INTERVAL === 0 })
-    frame.close()
+      encoder.encode(frame, { keyFrame: page % KEY_INTERVAL === 0 })
+      frame.close()
 
-    await drain(encoder)
+      await drain(encoder)
 
-    onProgress(((page + 1) / frames.count) * 0.9)
-    await yielder.breathe()
+      if (state.error) throw state.error
+
+      onProgress(((page + 1) / frames.count) * 0.9)
+      await yielder.breathe()
+    }
+
+    await encoder.flush()
+  } finally {
+    if (encoder.state !== 'closed') encoder.close()
   }
 
-  await encoder.flush()
-  encoder.close()
-
-  if (!config) throw new Error('動画の設定を取得できません')
+  if (state.error) throw state.error
+  if (!state.description) throw new Error('動画の設定を取得できません')
 
   return {
     samples,
     timescale: TIMESCALE,
-    config,
+    config: state.description,
     data: data.finish(),
     bytes: data.size,
   }
@@ -467,10 +521,12 @@ function toBytes(source: AllowSharedBufferSource): Uint8Array {
   return new Uint8Array(source)
 }
 
-async function encodeAudio(note: Note): Promise<TrackData | null> {
-  const hasSound = note.meta.tracks.some(track => track.soundId)
+function hasSound(note: Note): boolean {
+  return note.meta.tracks.some(track => track.soundId)
+}
 
-  if (!hasSound || typeof AudioEncoder === 'undefined') return null
+async function encodeAudio(note: Note): Promise<TrackData | null> {
+  if (!hasSound(note) || typeof AudioEncoder === 'undefined') return null
 
   const mix = new Mixdown(note)
   const config: AudioEncoderConfig = {
@@ -480,13 +536,13 @@ async function encodeAudio(note: Note): Promise<TrackData | null> {
     bitrate: AUDIO_BITRATE,
   }
 
-  const support = await AudioEncoder.isConfigSupported(config)
+  const support = await AudioEncoder.isConfigSupported(config).catch(() => null)
 
-  if (!support.supported) return null
+  if (!support?.supported) return null
 
   const samples: Sample[] = []
   const data = new BlobBuilder()
-  let description: Uint8Array | null = null
+  const state: EncodeState = { description: null, error: null }
 
   const encoder = new AudioEncoder({
     output: (chunk, metadata) => {
@@ -498,42 +554,49 @@ async function encodeAudio(note: Note): Promise<TrackData | null> {
       })
 
       if (metadata?.decoderConfig?.description) {
-        description = toBytes(metadata.decoderConfig.description)
+        state.description = toBytes(metadata.decoderConfig.description)
       }
     },
     error: error => {
-      throw error
+      state.error = error
     },
   })
 
-  encoder.configure(config)
+  try {
+    encoder.configure(config)
 
-  let start = 0
+    let start = 0
 
-  for await (const block of mix.blocks()) {
-    const audio = new AudioData({
-      format: 'f32',
-      sampleRate: mix.rate,
-      numberOfFrames: block.length,
-      numberOfChannels: 1,
-      timestamp: Math.round((start / mix.rate) * 1_000_000),
-      data: block,
-    })
+    for await (const block of mix.blocks()) {
+      const audio = new AudioData({
+        format: 'f32',
+        sampleRate: mix.rate,
+        numberOfFrames: block.length,
+        numberOfChannels: 1,
+        timestamp: Math.round((start / mix.rate) * 1_000_000),
+        data: block,
+      })
 
-    encoder.encode(audio)
-    audio.close()
-    start += block.length
-    await drain(encoder)
+      encoder.encode(audio)
+      audio.close()
+      start += block.length
+      await drain(encoder)
+
+      if (state.error) return null
+    }
+
+    await encoder.flush()
+  } catch {
+    return null
+  } finally {
+    if (encoder.state !== 'closed') encoder.close()
   }
 
-  await encoder.flush()
-  encoder.close()
-
-  return description
+  return !state.error && state.description
     ? {
         samples,
         timescale: mix.rate,
-        config: description,
+        config: state.description,
         data: data.finish(),
         bytes: data.size,
       }
@@ -542,12 +605,13 @@ async function encodeAudio(note: Note): Promise<TrackData | null> {
 
 export async function encodeMp4(
   note: Note,
+  hasLines: boolean,
   onProgress: (ratio: number) => void,
-): Promise<Blob> {
+): Promise<Mp4File> {
   const scale = Math.max(1, Math.floor(TARGET_HEIGHT / note.meta.height))
   const width = note.meta.width * scale
   const height = note.meta.height * scale
-  const video = await encodeVideo(note, scale, onProgress)
+  const video = await encodeVideo(note, scale, hasLines, onProgress)
   const audio = await encodeAudio(note)
 
   onProgress(0.95)
@@ -581,7 +645,7 @@ export async function encodeMp4(
 
   onProgress(1)
 
-  return new Blob(
+  const blob = new Blob(
     [
       fileType,
       movie,
@@ -591,4 +655,6 @@ export async function encodeMp4(
     ],
     { type: 'video/mp4' },
   )
+
+  return { blob, isMuted: hasSound(note) && !audio }
 }

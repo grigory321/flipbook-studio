@@ -313,6 +313,8 @@ export class PageStrip {
   private render(): void {
     const editor = this.editor
     const { scrollLeft, clientWidth } = this.scroller
+
+    this.element.style.setProperty('--film-scroll', `${scrollLeft}px`)
     const width = this.cellWidth || DEFAULT_CELL
     const first = Math.max(0, Math.floor(scrollLeft / width) - OVERSCAN)
     const last = Math.min(

@@ -169,7 +169,7 @@
 .kind-card .icon {
   width: 34px;
   height: 34px;
-  color: var(--cover-edge);
+  color: var(--tape-edge);
 }
 
 .kind-card[aria-pressed='true'] {

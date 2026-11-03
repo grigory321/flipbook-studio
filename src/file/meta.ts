@@ -21,7 +21,12 @@ import {
   type Rgb,
 } from '../core/profile.ts'
 
-const isPaperStyle = oneOf<PaperStyle>(['plain', 'ruled', 'grid', 'dots'])
+export const isPaperStyle = oneOf<PaperStyle>([
+  'plain',
+  'ruled',
+  'grid',
+  'dots',
+])
 
 function fitsSheet(spec: Profile, width: number, height: number): boolean {
   const side = Math.max(

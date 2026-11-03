@@ -224,6 +224,8 @@ export const ru = {
   'export.warn.overSize': 'Слишком большой файл для консоли',
   'export.warn.memoryFull': 'На консоли нельзя будет дорисовать',
   'export.warn.converted': 'Цвета приведены к цветам консоли',
+  'export.warn.noSound':
+    'Это устройство не может добавить звук, видео сохранено без звука',
 
   'panel.title': 'Панель',
   'panel.pen': 'Перо',
@@ -289,6 +291,9 @@ export const ru = {
   'settings.hand': 'Рабочая рука',
   'settings.hand.right': 'Правая',
   'settings.hand.left': 'Левая',
+  'settings.paper': 'Вид бумаги',
+  'settings.paper.notebook': 'Тетрадь',
+  'settings.paper.plain': 'Только холст',
   'settings.onion': 'Соседние страницы',
   'settings.onionBefore': 'Предыдущая',
   'settings.onionAfter': 'Следующая',
@@ -443,6 +448,7 @@ export const ru = {
   'text.font.mincho': 'Антиква',
   'text.font.hand': 'Рукопись',
   'export.scale': 'Масштаб',
+  'export.lines': 'Добавить линовку и сетку',
   'export.still': 'Сохранить страницу как картинку',
   'export.apng': 'Анимированный PNG',
   'export.apngDetail': 'Анимация с точными цветами',

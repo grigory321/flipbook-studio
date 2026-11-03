@@ -4,6 +4,7 @@ import { blendOver } from '../core/ink.ts'
 import type { Note } from '../core/note.ts'
 import { rgbaWord } from '../core/profile.ts'
 import { Yielder } from '../core/yielder.ts'
+import { Backdrop } from './backdrop.ts'
 import { BlobBuilder } from './blob-builder.ts'
 
 const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
@@ -54,14 +55,13 @@ function chunk(type: string, payload: Uint8Array): Uint8Array<ArrayBuffer>[] {
   ]
 }
 
-function colorTable(note: Note): Map<number, number> {
+function colorTable(note: Note, backdrop: Backdrop): Map<number, number> {
   const { meta, profile } = note
   const table = new Map<number, number>()
   const colors = [...profile.papers, ...profile.colors, ...meta.palette]
+  const words = [...colors.map(rgbaWord), ...backdrop.colors()]
 
-  for (const color of colors) {
-    const word = rgbaWord(color)
-
+  for (const word of words) {
     if (!table.has(word) && table.size < MAX_COLORS) {
       table.set(word, table.size)
     }
@@ -166,12 +166,11 @@ function pageIndices(
   note: Note,
   compositor: Compositor,
   table: Map<number, number>,
-  page: number,
+  backdrop: Uint32Array,
   scale: number,
   out: Uint8Array,
 ): void {
-  const { frames, meta, profile } = note
-  const paper = rgbaWord(profile.papers[frames.paper(page)] ?? [255, 255, 255])
+  const { meta } = note
   const isRgb = usesRgb(note)
   const depth = isRgb ? RGB_BYTES : 1
   const rowBytes = meta.width * scale * depth
@@ -180,7 +179,8 @@ function pageIndices(
     const rowStart = y * scale * rowBytes
 
     for (let x = 0; x < meta.width; x++) {
-      const word = blendOver(compositor.pixels[y * meta.width + x], paper)
+      const index = y * meta.width + x
+      const word = blendOver(compositor.pixels[index], backdrop[index])
       const start = rowStart + x * scale * depth
 
       if (!isRgb) {
@@ -211,12 +211,14 @@ function pageIndices(
 export async function encodeApng(
   note: Note,
   scale: number,
+  hasLines: boolean,
   onProgress: (ratio: number) => void,
 ): Promise<Blob> {
   const { frames, meta } = note
   const width = meta.width * scale
   const height = meta.height * scale
-  const table = colorTable(note)
+  const backdrop = new Backdrop(note, hasLines)
+  const table = colorTable(note, backdrop)
   const compositor = new Compositor(note)
   const yielder = new Yielder()
   const file = new BlobBuilder()
@@ -244,7 +246,7 @@ export async function encodeApng(
   for (let page = 0; page < frames.count; page++) {
     await note.ensurePages(page, 1)
     compositor.composePage(page)
-    pageIndices(note, compositor, table, page, scale, current)
+    pageIndices(note, compositor, table, backdrop.of(page), scale, current)
 
     const box = changedBox(current, previous, width, height, depth)
     const data = await zlib(rowsOf(current, width, box, depth))
@@ -290,30 +292,32 @@ export async function encodeApng(
 export class PagePngEncoder {
   private readonly note: Note
   private readonly scale: number
+  private readonly backdrop: Backdrop
   private readonly table: Map<number, number>
   private readonly compositor: Compositor
   private readonly depth: number
   private readonly indices: Uint8Array
 
-  constructor(note: Note, scale: number) {
+  constructor(note: Note, scale: number, hasLines: boolean) {
     const { width, height } = note.meta
 
     this.note = note
     this.scale = scale
-    this.table = colorTable(note)
+    this.backdrop = new Backdrop(note, hasLines)
+    this.table = colorTable(note, this.backdrop)
     this.compositor = new Compositor(note)
     this.depth = usesRgb(note) ? RGB_BYTES : 1
     this.indices = new Uint8Array(width * height * scale * scale * this.depth)
   }
 
   async encode(page: number): Promise<Blob> {
-    const { note, scale, table, compositor, depth, indices } = this
+    const { note, scale, backdrop, table, compositor, depth, indices } = this
     const width = note.meta.width * scale
     const height = note.meta.height * scale
 
     await note.ensurePages(page, 1)
     compositor.composePage(page)
-    pageIndices(note, compositor, table, page, scale, indices)
+    pageIndices(note, compositor, table, backdrop.of(page), scale, indices)
 
     const box = { left: 0, top: 0, width, height }
     const data = await zlib(rowsOf(indices, width, box, depth))
@@ -337,6 +341,7 @@ export function encodePagePng(
   note: Note,
   page: number,
   scale: number,
+  hasLines: boolean,
 ): Promise<Blob> {
-  return new PagePngEncoder(note, scale).encode(page)
+  return new PagePngEncoder(note, scale, hasLines).encode(page)
 }

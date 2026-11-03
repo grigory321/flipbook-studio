@@ -132,7 +132,7 @@ export function fill(element: Element, ...children: Child[]): void {
   append(element, children)
 }
 
-const SVG_NS = 'http://www.w3.org/2000/svg'
+export const SVG_NS = 'http://www.w3.org/2000/svg'
 
 export function icon(name: string, className = ''): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, 'svg')

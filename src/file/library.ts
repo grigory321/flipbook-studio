@@ -1,10 +1,15 @@
 import { FrameTable } from '../core/frames.ts'
 import { isList, isNumber, isRecord, isString } from '../core/guards.ts'
-import { Note, type NoteMeta, type Sound } from '../core/note.ts'
+import {
+  Note,
+  type NoteMeta,
+  type PaperStyle,
+  type Sound,
+} from '../core/note.ts'
 import { isProfileId, type ProfileId } from '../core/profile.ts'
 import { type SlabBackend, Store } from '../core/store.ts'
 import { readResult, requestResult, transactionDone } from './idb.ts'
-import { checkPages, readMeta } from './meta.ts'
+import { checkPages, isPaperStyle, readMeta } from './meta.ts'
 
 const DB_NAME = 'flipbook'
 const DB_VERSION = 1
@@ -18,6 +23,7 @@ export interface NoteCard {
   height: number
   modified: number
   fps: number
+  paperStyle: PaperStyle
   cover: Uint8Array | null
   trashed?: number
 }
@@ -68,6 +74,7 @@ function readCard(value: unknown): NoteCard | null {
     height,
     modified,
     fps,
+    paperStyle: isPaperStyle(value.paperStyle) ? value.paperStyle : 'plain',
     cover: value.cover instanceof Uint8Array ? value.cover : null,
     trashed: isNumber(value.trashed) ? value.trashed : undefined,
   }

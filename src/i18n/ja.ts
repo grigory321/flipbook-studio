@@ -218,6 +218,8 @@ export const ja = {
   'export.warn.overSize': '実機で開ける大きさをこえています',
   'export.warn.memoryFull': '実機では続きを描けない量です',
   'export.warn.converted': '実機の色に変換しました',
+  'export.warn.noSound':
+    'この端末では音を入れられないため、音なしで書き出しました',
 
   'panel.title': 'パネル',
   'panel.pen': 'ふで',
@@ -283,6 +285,9 @@ export const ja = {
   'settings.hand': '利き手',
   'settings.hand.right': '右手',
   'settings.hand.left': '左手',
+  'settings.paper': '紙の見た目',
+  'settings.paper.notebook': 'ノート',
+  'settings.paper.plain': 'キャンバスだけ',
   'settings.onion': 'うすく表示',
   'settings.onionBefore': '前のページ',
   'settings.onionAfter': '次のページ',
@@ -438,6 +443,7 @@ export const ja = {
   'text.font.mincho': '明朝',
   'text.font.hand': '手書き',
   'export.scale': '大きさ',
+  'export.lines': '罫線や方眼も入れる',
   'export.still': 'このページを画像で保存',
   'export.apng': '動く PNG',
   'export.apngDetail': '色がきれいなまま動く画像',

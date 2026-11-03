@@ -60,9 +60,10 @@ async function pageEntries(
   end: number,
   digits: number,
   scale: number,
+  hasLines: boolean,
   onProgress: Progress,
 ): Promise<ZipEntry[]> {
-  const encoder = new PagePngEncoder(note, scale)
+  const encoder = new PagePngEncoder(note, scale, hasLines)
   const entries: ZipEntry[] = []
 
   for (let page = first; page < end; page++) {
@@ -79,6 +80,7 @@ export async function exportNote(
   note: Note,
   format: ExportFormat,
   scale: number,
+  hasLines: boolean,
   onProgress: Progress,
 ): Promise<ExportFile> {
   const { title } = note.meta
@@ -118,13 +120,19 @@ export async function exportNote(
     }
 
     case 'gif':
-      return named(await encodeGif(note, scale, onProgress), '.gif')
+      return named(await encodeGif(note, scale, hasLines, onProgress), '.gif')
 
     case 'apng':
-      return named(await encodeApng(note, scale, onProgress), '.png')
+      return named(await encodeApng(note, scale, hasLines, onProgress), '.png')
 
-    case 'mp4':
-      return named(await encodeMp4(note, onProgress), '.mp4')
+    case 'mp4': {
+      const video = await encodeMp4(note, hasLines, onProgress)
+
+      return {
+        ...named(video.blob, '.mp4'),
+        warnings: video.isMuted ? ['export.warn.noSound'] : [],
+      }
+    }
 
     case 'png': {
       const count = note.frames.count
@@ -135,6 +143,7 @@ export async function exportNote(
         count,
         digits,
         scale,
+        hasLines,
         onProgress,
       )
 
@@ -150,8 +159,9 @@ export function stillOf(
   note: Note,
   page: number,
   scale: number,
+  hasLines: boolean,
 ): Promise<Blob> {
-  return new PagePngEncoder(note, scale).encode(page)
+  return new PagePngEncoder(note, scale, hasLines).encode(page)
 }
 
 export async function readNoteFile(file: File, store: Store): Promise<Note> {
@@ -210,20 +220,27 @@ export async function run(job: Job, onProgress: Progress): Promise<JobResult> {
   switch (job.kind) {
     case 'export': {
       const note = await (await library()).loadNote(job.noteId, job.budget)
-      const file = await exportNote(note, job.format, job.scale, onProgress)
+      const file = await exportNote(
+        note,
+        job.format,
+        job.scale,
+        job.hasLines,
+        onProgress,
+      )
 
       return { kind: 'file', ...file }
     }
 
     case 'pages': {
       const note = await (await library()).loadNote(job.noteId, job.budget)
-      const { first, end, digits, scale } = job
+      const { first, end, digits, scale, hasLines } = job
       const entries = await pageEntries(
         note,
         first,
         end,
         digits,
         scale,
+        hasLines,
         onProgress,
       )
 
@@ -241,7 +258,10 @@ export async function run(job: Job, onProgress: Progress): Promise<JobResult> {
     case 'still': {
       const note = await (await library()).loadNote(job.noteId, job.budget)
 
-      return { kind: 'blob', blob: await stillOf(note, job.page, job.scale) }
+      return {
+        kind: 'blob',
+        blob: await stillOf(note, job.page, job.scale, job.hasLines),
+      }
     }
 
     case 'import': {

@@ -1,4 +1,5 @@
 import { ByteWriter } from '../core/bytes.ts'
+import { Backdrop } from './backdrop.ts'
 import { BlobBuilder } from './blob-builder.ts'
 import { Compositor } from '../core/compositor.ts'
 import { blendOver } from '../core/ink.ts'
@@ -131,7 +132,10 @@ const LOOP_EXTENSION = Uint8Array.from(
   [...'\x21\xff\x0bNETSCAPE2.0\x03\x01'].map(letter => letter.charCodeAt(0)),
 )
 
-function buildPalette(note: Note): {
+function buildPalette(
+  note: Note,
+  backdrop: Backdrop,
+): {
   words: number[]
   lookup: Map<number, number>
 } {
@@ -149,6 +153,10 @@ function buildPalette(note: Note): {
   profile.papers.forEach(color => add(rgbaWord(color)))
   profile.colors.forEach(color => add(rgbaWord(color)))
   meta.palette.forEach(color => add(rgbaWord(color)))
+
+  for (const word of backdrop.colors()) {
+    if (words.length < MAX_COLORS) add(word)
+  }
 
   if (profile.id === 'free') {
     const paper = rgbaWord(profile.papers[note.frames.paper(0)])
@@ -201,7 +209,7 @@ function nearestIndex(
 
 function regionIndices(
   words: Uint32Array,
-  paper: number,
+  backdrop: Uint32Array,
   lookup: Map<number, number>,
   palette: readonly number[],
   noteWidth: number,
@@ -216,7 +224,7 @@ function regionIndices(
     const start = (region.top + y) * noteWidth + region.left
 
     for (let x = 0; x < region.width; x++) {
-      const word = blendOver(words[start + x], paper)
+      const word = blendOver(words[start + x], backdrop[start + x])
       const index = lookup.get(word) ?? nearestIndex(word, palette, lookup)
 
       for (let repeat = 0; repeat < scale; repeat++) out[position++] = index
@@ -236,13 +244,15 @@ function regionIndices(
 export async function encodeGif(
   note: Note,
   chosenScale: number | undefined,
+  hasLines: boolean,
   onProgress: (ratio: number) => void,
 ): Promise<Blob> {
-  const { frames, meta, profile } = note
+  const { frames, meta } = note
   const scale = chosenScale ?? gifScale(note)
   const width = meta.width * scale
   const height = meta.height * scale
-  const { words, lookup } = buildPalette(note)
+  const backdrop = new Backdrop(note, hasLines)
+  const { words, lookup } = buildPalette(note, backdrop)
   const tableBits = Math.max(1, Math.ceil(Math.log2(words.length)))
   const tableSize = 1 << tableBits
   const file = new BlobBuilder()
@@ -311,13 +321,11 @@ export async function encodeGif(
     out.u16(region.height * scale)
     out.u8(0)
 
-    const paper = rgbaWord(profile.papers[paperIndex] ?? profile.papers[0])
-
     writeLzw(
       out,
       regionIndices(
         compositor.pixels,
-        paper,
+        backdrop.of(page),
         lookup,
         words,
         meta.width,
