@@ -321,17 +321,25 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
             h('span', { class: 'card-spine' }),
             h(
               'span',
-              { class: 'card-picture', 'data-paper': card.paperStyle },
-              coverCanvas(card),
-            ),
-            h(
-              'span',
-              { class: 'card-label' },
-              h('span', { class: 'card-number' }, 'No.'),
+              { class: 'card-name' },
               h(
                 'span',
                 { class: 'card-title' },
                 card.title || t('home.untitled'),
+              ),
+            ),
+            h(
+              'span',
+              { class: 'card-panel' },
+              h(
+                'span',
+                { class: 'card-picture', 'data-paper': card.paperStyle },
+                coverCanvas(card),
+              ),
+              h(
+                'span',
+                { class: 'card-pages' },
+                plural('common.pages', card.pages),
               ),
             ),
           ),

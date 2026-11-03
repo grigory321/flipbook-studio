@@ -1,7 +1,6 @@
 import { settings } from '../app/settings.ts'
 
-export type SfxName =
-  'move' | 'ok' | 'back' | 'page' | 'error' | 'save' | 'start' | 'tap'
+export type SfxName = 'move' | 'back' | 'page' | 'error' | 'start' | 'tap'
 
 export type ScribbleKind = 'pen' | 'eraser'
 
@@ -23,10 +22,6 @@ interface Note {
 const SOUNDS: Readonly<Record<Exclude<SfxName, 'page'>, readonly Note[]>> = {
   tap: [{ frequency: 520, decay: 0.05, volume: 0.05, bend: 0.8 }],
   move: [{ frequency: 740, decay: 0.035, volume: 0.022 }],
-  ok: [
-    { frequency: 587, decay: 0.09, volume: 0.07 },
-    { frequency: 880, at: 0.055, decay: 0.12, volume: 0.06 },
-  ],
   back: [
     { frequency: 494, decay: 0.08, volume: 0.06, bend: 0.85 },
     { frequency: 392, at: 0.05, decay: 0.1, volume: 0.05, bend: 0.9 },
@@ -34,10 +29,6 @@ const SOUNDS: Readonly<Record<Exclude<SfxName, 'page'>, readonly Note[]>> = {
   error: [
     { frequency: 233, decay: 0.09, volume: 0.09, bend: 0.92 },
     { frequency: 196, at: 0.09, decay: 0.13, volume: 0.09, bend: 0.92 },
-  ],
-  save: [
-    { frequency: 659, decay: 0.1, volume: 0.05 },
-    { frequency: 988, at: 0.07, decay: 0.16, volume: 0.05 },
   ],
   start: [
     { frequency: 523, decay: 0.14, volume: 0.07 },

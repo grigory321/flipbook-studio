@@ -15,11 +15,9 @@
   --ink-soft: #7c5636;
   --line: #f6dcbc;
   --rule: #ffe9d2;
-  --margin-line: #ffbfa6;
   --lcd: #4a2a10;
 
   --sky: #3fa9f5;
-  --leaf: #2fbf72;
   --berry: #f4497f;
   --sun: #ffd23f;
   --danger: #d9342b;
@@ -54,19 +52,25 @@
 
 :root,
 [data-kind='free'] {
-  --cover: var(--orange-500);
+  --cover: #ffc994;
+  --cover-light: #ffe5ca;
+  --cover-spine: var(--orange-500);
   --tape: #ea6c12;
   --tape-edge: var(--orange-700);
 }
 
 [data-kind='dsi'] {
-  --cover: var(--sky);
+  --cover: #a9d9fb;
+  --cover-light: #d4edfe;
+  --cover-spine: var(--sky);
   --tape: #2f8fd8;
   --tape-edge: #1f6fb0;
 }
 
 [data-kind='3ds'] {
-  --cover: var(--berry);
+  --cover: #fbb3ca;
+  --cover-light: #fdd9e5;
+  --cover-spine: var(--berry);
   --tape: #e0386c;
   --tape-edge: #b8264f;
 }
