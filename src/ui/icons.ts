@@ -53,6 +53,8 @@ const ICONS: Readonly<Record<string, string>> = {
   check: 'M5 13l4 4 10-11',
   close: 'M6 6l12 12M18 6L6 18',
   more: 'M6 12h.01M12 12h.01M18 12h.01',
+  saving: 'M20 12a8 8 0 1 1-8-8',
+  alert: 'M12 6v7M12 18h.01',
   flipH: 'M12 3v18M8 7l-5 5 5 5zM16 7l5 5-5 5z',
   flipV: 'M3 12h18M7 8l5-5 5 5zM7 16l5 5 5-5z',
   rotate: 'M4 12a8 8 0 1 0 3-6.2M4 4v5h5',

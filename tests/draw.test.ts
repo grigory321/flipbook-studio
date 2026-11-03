@@ -310,3 +310,98 @@ test('編集: 3DS の普通ふでばこは 1 枚の紙として描く', () => {
     '上から描くと下のレイヤーの点が消える',
   )
 })
+
+test('編集: レイヤーを足す・並べかえる・消しても、前の線を元に戻せる', () => {
+  const note = Note.create({ title: 't', profile: 'free' })
+  const editor = new Editor(note)
+  const pen = builtinTools().find(tool => tool.id === 'pen')
+
+  assert.ok(pen)
+
+  const drawn = editor.layer.peek()
+  const inkAt = (layer: number): boolean => editor.planes[layer].some(Boolean)
+  const anyInk = (): boolean => editor.planes.some(plane => plane.some(Boolean))
+
+  pen.down(editor, point(30, 30))
+  pen.move(editor, point(80, 30, 100))
+  pen.tick?.(editor, 100)
+  pen.up(editor, point(80, 30, 101))
+  assert.ok(inkAt(drawn))
+
+  assert.ok(editor.addLayer())
+  assert.ok(inkAt(drawn + 1))
+  editor.moveLayer(drawn, 1)
+  assert.ok(inkAt(drawn))
+  editor.layer.value = drawn
+  assert.ok(editor.removeLayer())
+  assert.equal(note.frames.layers, 2)
+  assert.ok(!anyInk())
+
+  editor.undo()
+  assert.ok(inkAt(drawn), '消したレイヤーが線ごと戻る')
+  editor.undo()
+  assert.ok(inkAt(drawn + 1))
+  editor.undo()
+  assert.equal(note.frames.layers, 2)
+  assert.ok(inkAt(drawn))
+  assert.ok(editor.history.canUndo, 'レイヤー操作で履歴が消えない')
+  editor.undo()
+  assert.ok(!anyInk())
+
+  for (let step = 0; step < 4; step++) editor.redo()
+
+  assert.equal(note.frames.layers, 2)
+  assert.ok(!anyInk())
+})
+
+test('編集: ページを足して取り消すと、足す前のページに戻る', async () => {
+  const editor = new Editor(Note.create({ title: 't', profile: 'free' }))
+
+  assert.ok(editor.addPages(4))
+  await editor.goTo(2)
+  assert.ok(editor.addPages(1))
+  assert.equal(editor.page.peek(), 3)
+
+  editor.undo()
+  assert.equal(editor.page.peek(), 2)
+})
+
+test('編集: 名前を変えると保存を予約する', () => {
+  let changes = 0
+  const editor = new Editor(Note.create({ title: 't', profile: 'free' }), {
+    onChange: () => changes++,
+  })
+
+  editor.setTitle('あたらしい名前')
+  assert.equal(editor.note.meta.title, 'あたらしい名前')
+  assert.equal(changes, 1)
+})
+
+test('編集: 動かしている途中の絵は、やりなおす前に確定して増えない', () => {
+  const editor = new Editor(Note.create({ title: 't', profile: 'free' }))
+  const pen = builtinTools().find(tool => tool.id === 'pen')
+
+  assert.ok(pen)
+
+  const stroke = (y: number): void => {
+    pen.down(editor, point(30, y))
+    pen.move(editor, point(80, y, 100))
+    pen.tick?.(editor, 100)
+    pen.up(editor, point(80, y, 101))
+  }
+  const inked = (): number =>
+    editor.planes[editor.layer.peek()].filter(Boolean).length
+
+  stroke(30)
+
+  const drawn = inked()
+
+  stroke(60)
+  editor.undo()
+  assert.equal(editor.liftAll(), null)
+  editor.floating.peek()?.moveBy(0, 100)
+  editor.redo()
+
+  assert.equal(editor.floating.peek(), null)
+  assert.equal(inked(), drawn)
+})

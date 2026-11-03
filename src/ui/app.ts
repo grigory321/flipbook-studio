@@ -104,7 +104,10 @@ export class App {
     this.renderGuide(nav.inputKind)
 
     requestAnimationFrame(() => {
-      nav.focusFirst(scene.initialFocus?.() ?? null)
+      const target = scene.initialFocus?.()
+
+      if (target === null) nav.clearFocus()
+      else nav.focusFirst(target)
     })
   }
 

@@ -186,7 +186,7 @@ export function openNoteSettings(editor: Editor, onChange: () => void): void {
     'data-nav': true,
     'aria-label': t('noteSettings.name'),
     onInput: () => {
-      meta.title = titleInput.value
+      editor.setTitle(titleInput.value)
       onChange()
     },
   })

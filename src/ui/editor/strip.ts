@@ -187,6 +187,7 @@ export class PageStrip {
     const cap = h('div', { class: 'strip-cap', 'aria-hidden': 'true' })
     const labels = this.showsLanes ? this.laneLabels() : []
 
+    this.gutter.hidden = !this.showsLanes
     this.gutter.replaceChildren(cap, ...labels)
   }
 
@@ -939,7 +940,7 @@ export class PageStrip {
     const box = this.track.getBoundingClientRect()
     const page = Math.round((event.clientX - box.left) / this.cellWidth)
 
-    return Math.max(0, Math.min(this.editor.pageCount - 1, page))
+    return Math.max(0, Math.min(this.editor.pageCount, page))
   }
 
   private readonly onPress = (event: PointerEvent): void => {

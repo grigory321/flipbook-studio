@@ -1,5 +1,6 @@
 export interface HistoryStep {
   readonly page: number
+  readonly undoPage?: number
   readonly bytes?: number
   undo(): void
   redo(): void

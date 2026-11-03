@@ -214,6 +214,9 @@ export function applyRange(
   times: number,
 ): boolean {
   const { frames } = editor.note
+
+  editor.dropFloating()
+
   const count = last - first + 1
   const source = frames.copyRows(first, count)
   const rows = arrangeRows(source, frames.stride, action, times)
@@ -227,7 +230,6 @@ export function applyRange(
     return true
   }
 
-  editor.dropFloating()
   editor.replacePages(first, count, rows, Math.min(first, frames.count - 1))
 
   return true

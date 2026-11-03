@@ -7,6 +7,7 @@ import { History, type HistoryStep } from '../core/history.ts'
 import {
   defaultInks,
   dsiInk,
+  type LayerInfo,
   type Note,
   resolveInk,
   type Track,
@@ -415,6 +416,8 @@ export class Editor {
   }
 
   private runStep(step: HistoryStep): void {
+    this.dropFloating()
+
     const wrapped: HistoryStep = {
       page: step.page,
       bytes: step.bytes,
@@ -424,7 +427,7 @@ export class Editor {
       },
       undo: () => {
         step.undo()
-        this.afterChange(step.page)
+        this.afterChange(step.undoPage ?? step.page)
       },
     }
 
@@ -451,6 +454,7 @@ export class Editor {
 
     this.runStep({
       page: showPage,
+      undoPage: previous,
       bytes: before.byteLength + rows.byteLength,
       redo: () => {
         frames.removeRows(first, count)
@@ -459,7 +463,6 @@ export class Editor {
       undo: () => {
         frames.removeRows(first, added)
         frames.insertRows(first, before)
-        this.page.value = previous
       },
     })
   }
@@ -880,6 +883,12 @@ export class Editor {
   }
 
   redo(): void {
+    if (this.floating.peek()) {
+      this.dropFloating()
+
+      return
+    }
+
     const step = this.history.redo()
 
     if (step) this.notifyHistory()
@@ -908,12 +917,10 @@ export class Editor {
 
     this.runStep({
       page: showPage,
+      undoPage: previousPage,
       bytes: rows.byteLength,
       redo: () => frames.insertRows(at, rows),
-      undo: () => {
-        frames.removeRows(at, count)
-        this.page.value = previousPage
-      },
+      undo: () => frames.removeRows(at, count),
     })
   }
 
@@ -958,13 +965,13 @@ export class Editor {
 
     this.runStep({
       page: nextPage,
+      undoPage: page,
       bytes: rows.byteLength,
       redo: () => {
         frames.removeRows(page, 1)
       },
       undo: () => {
         frames.insertRows(page, rows)
-        this.page.value = page
       },
     })
   }
@@ -1051,6 +1058,11 @@ export class Editor {
     this.notifySettings()
   }
 
+  setTitle(title: string): void {
+    this.note.meta.title = title
+    this.notifySettings()
+  }
+
   setLoop(isLooping: boolean): void {
     this.note.meta.loop = isLooping
     this.notifySettings()
@@ -1062,22 +1074,54 @@ export class Editor {
     this.notifyPicture()
   }
 
+  private runLayerStep(
+    redo: () => void,
+    undo: () => void,
+    bytes?: number,
+  ): void {
+    this.dropFloating()
+
+    const apply = (change: () => void): void => {
+      change()
+      this.fitPlanes()
+      this.reloadPage(this.page.peek())
+      this.touchSettings()
+      this.notifyPages()
+    }
+
+    this.history.run({
+      page: this.page.peek(),
+      bytes,
+      redo: () => apply(redo),
+      undo: () => apply(undo),
+    })
+    this.notifyHistory()
+  }
+
   addLayer(): boolean {
     const { frames, meta, profile } = this.note
 
     if (frames.layers >= profile.maxLayers) return false
 
     const at = this.layer.peek()
-    const name = String.fromCharCode(65 + frames.layers)
+    let entry: LayerInfo = {
+      name: String.fromCharCode(65 + frames.layers),
+      visible: true,
+      locked: false,
+    }
 
-    frames.insertLayer(at)
-    meta.layers.splice(at, 0, { name, visible: true, locked: false })
-    this.fitPlanes()
-    this.history.clear()
-    this.notifyHistory()
-    this.reloadPage(this.page.peek())
-    this.touchSettings()
-    this.notifyPages()
+    this.runLayerStep(
+      () => {
+        frames.insertLayer(at)
+        meta.layers.splice(at, 0, entry)
+        this.layer.value = at
+      },
+      () => {
+        frames.removeLayer(at)
+        entry = meta.layers.splice(at, 1)[0] ?? entry
+        this.layer.value = Math.min(at, frames.layers - 1)
+      },
+    )
 
     return true
   }
@@ -1088,16 +1132,31 @@ export class Editor {
     if (frames.layers <= profile.minLayers) return false
 
     const at = this.layer.peek()
+    const cels = new Uint32Array(frames.count)
+    let entry = meta.layers[at]
 
-    frames.removeLayer(at)
-    meta.layers.splice(at, 1)
-    this.fitPlanes()
-    this.history.clear()
-    this.notifyHistory()
-    this.layer.value = Math.min(at, frames.layers - 1)
-    this.reloadPage(this.page.peek())
-    this.touchSettings()
-    this.notifyPages()
+    this.runLayerStep(
+      () => {
+        for (let page = 0; page < cels.length; page++) {
+          cels[page] = frames.cel(page, at)
+        }
+
+        frames.removeLayer(at)
+        entry = meta.layers.splice(at, 1)[0] ?? entry
+        this.layer.value = Math.min(at, frames.layers - 1)
+      },
+      () => {
+        frames.insertLayer(at)
+
+        for (let page = 0; page < cels.length; page++) {
+          frames.setCel(page, at, cels[page])
+        }
+
+        meta.layers.splice(at, 0, entry)
+        this.layer.value = at
+      },
+      cels.byteLength,
+    )
 
     return true
   }
@@ -1108,17 +1167,19 @@ export class Editor {
 
     if (other < 0 || other >= frames.layers) return
 
-    const held = meta.layers[layer]
+    const swap = (selected: number): void => {
+      const held = meta.layers[layer]
 
-    meta.layers[layer] = meta.layers[other]
-    meta.layers[other] = held
-    frames.swapLayers(layer, other)
-    this.layer.value = other
-    this.history.clear()
-    this.notifyHistory()
-    this.reloadPage(this.page.peek())
-    this.touchSettings()
-    this.notifyPages()
+      meta.layers[layer] = meta.layers[other]
+      meta.layers[other] = held
+      frames.swapLayers(layer, other)
+      this.layer.value = selected
+    }
+
+    this.runLayerStep(
+      () => swap(other),
+      () => swap(layer),
+    )
   }
 
   setOneSheet(isOneSheet: boolean): void {

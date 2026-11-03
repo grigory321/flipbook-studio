@@ -53,6 +53,9 @@ export class Session {
 
   async start(): Promise<void> {
     this.library = await Library.open()
+
+    if (!this.library) this.saveState.value = 'failed'
+
     this.host.define(CORE_PLUGIN)
     this.host.define(TONE_PLUGIN)
     await this.library?.purgeTrash()
@@ -144,6 +147,8 @@ export class Session {
   }
 
   scheduleSave(editor: Editor): void {
+    if (!this.library) return
+
     this.saveTarget = editor
     this.saveState.value = 'saving'
     clearTimeout(this.saveTimer)

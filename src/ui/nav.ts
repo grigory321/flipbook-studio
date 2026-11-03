@@ -13,7 +13,7 @@ const DIRECTIONS: Readonly<Record<string, Direction>> = {
 }
 
 const CONFIRM_KEYS = new Set(['Enter', ' ', 'z', 'Z'])
-const CANCEL_KEYS = new Set(['Escape', 'x', 'X', 'Backspace'])
+const CANCEL_KEYS = new Set(['Escape', 'x', 'X'])
 const TEXT_INPUTS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
 const PAD_DEADZONE = 0.5
@@ -49,9 +49,18 @@ class Navigator {
   private padRequest = 0
   private kind: InputKind = detectInitialInput()
   private listeners = new Set<(kind: InputKind) => void>()
+  private hasKeyFocus = false
 
   get inputKind(): InputKind {
     return this.kind
+  }
+
+  get isKeyFocus(): boolean {
+    return this.hasKeyFocus && !!focusedElement()?.matches('[data-nav]')
+  }
+
+  private get usesButtons(): boolean {
+    return this.kind === 'keys' || this.kind === 'pad'
   }
 
   onInputChange(listener: (kind: InputKind) => void): () => void {
@@ -104,6 +113,13 @@ class Navigator {
     const target = preferred ?? this.items()[0]
 
     target?.focus({ preventScroll: true })
+    this.hasKeyFocus = this.usesButtons
+    this.placeCursor()
+  }
+
+  clearFocus(): void {
+    focusedElement()?.blur()
+    this.hasKeyFocus = false
     this.placeCursor()
   }
 
@@ -118,6 +134,7 @@ class Navigator {
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
+    this.hasKeyFocus = false
     unlockSfx()
     this.setKind(pointerKind(event.pointerType))
     this.placeCursor()
@@ -142,6 +159,14 @@ class Navigator {
 
     this.setKind(isPad ? 'pad' : 'keys')
     unlockSfx()
+
+    if (event.ctrlKey || event.metaKey || event.altKey) return
+
+    if (event.key === 'Tab') {
+      this.hasKeyFocus = true
+
+      return
+    }
 
     const focused = focusedElement()
     const isTyping = TEXT_INPUTS.has(focused?.tagName ?? '')
@@ -169,8 +194,8 @@ class Navigator {
       return
     }
 
-    if (CONFIRM_KEYS.has(event.key) && focused?.matches('[data-nav]')) {
-      if (this.scope?.root.contains(focused)) {
+    if (CONFIRM_KEYS.has(event.key) && !event.repeat && this.isKeyFocus) {
+      if (focused && this.scope?.root.contains(focused)) {
         event.preventDefault()
         focused.click()
       }
@@ -192,15 +217,16 @@ class Navigator {
     if (!next) return
 
     next.focus({ preventScroll: true })
+    this.hasKeyFocus = true
     next.scrollIntoView({ block: 'nearest', inline: 'nearest' })
     playSfx('move')
   }
 
   readonly placeCursor = (): void => {
     const target = focusedElement()
-    const usesButtons = this.kind === 'keys' || this.kind === 'pad'
     const isVisible =
-      usesButtons &&
+      this.usesButtons &&
+      this.hasKeyFocus &&
       !!target?.matches('[data-nav]') &&
       !!this.scope?.root.contains(target) &&
       !target.closest('[data-no-cursor]')

@@ -85,6 +85,16 @@
   color: var(--orange-700);
 }
 
+.save-mark.is-saving .icon {
+  animation: save-spin 0.9s linear infinite;
+}
+
+@keyframes save-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
 .save-mark.is-failed {
   background: #ffd6d0;
   color: var(--danger);
@@ -1000,6 +1010,10 @@
   --film-hole: #fff7ec;
   min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.strip.has-sounds {
   grid-template-columns: var(--gutter) minmax(0, 1fr);
 }
 
@@ -1016,10 +1030,7 @@
 .strip-cap {
   flex: none;
   height: var(--strip-height);
-  background:
-    radial-gradient(circle at 50% 50%, #fff 0 7px, transparent 7.5px),
-    radial-gradient(circle at 50% 50%, #6f665e 0 15px, transparent 15.5px),
-    var(--film-dark);
+  background: var(--film-dark);
 }
 
 .lane-label {
@@ -1623,7 +1634,7 @@
     --cell: 56px;
     grid-template:
       'tools stage tabs' minmax(0, 1fr)
-      'tools strip tabs' auto
+      'tools strip strip' auto
       'bar bar bar' auto
       / auto minmax(0, 1fr) auto;
   }
@@ -1631,7 +1642,7 @@
   .editor[data-hand='left'] {
     grid-template:
       'tabs stage tools' minmax(0, 1fr)
-      'tabs strip tools' auto
+      'strip strip tools' auto
       'bar bar bar' auto
       / auto minmax(0, 1fr) auto;
   }

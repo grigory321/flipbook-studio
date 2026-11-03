@@ -193,14 +193,7 @@ canvas {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-m);
-  animation: cursor-pulse 0.8s ease-in-out infinite alternate;
   box-shadow: 0 0 0 2px rgb(255 210 63 / 50%);
-}
-
-@keyframes cursor-pulse {
-  to {
-    box-shadow: 0 0 0 5px rgb(255 210 63 / 12%);
-  }
 }
 
 .guide-fingers {

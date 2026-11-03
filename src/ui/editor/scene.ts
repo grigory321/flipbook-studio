@@ -7,16 +7,8 @@ import { t } from '../../i18n/index.ts'
 import { registries, type Panel } from '../../plugin/host.ts'
 import type { Tool } from '../../app/tools.ts'
 import type { App, Scene } from '../app.ts'
-import {
-  eventElement,
-  fill,
-  focusedElement,
-  h,
-  icon,
-  key,
-  Scope,
-  setPressed,
-} from '../dom.ts'
+import type { SaveState } from '../../app/session.ts'
+import { eventElement, fill, h, icon, key, Scope, setPressed } from '../dom.ts'
 import { nav } from '../nav.ts'
 import { type MenuItem, openMenu, toast } from '../overlay.ts'
 import { openAppSettings } from '../settings-dialog.ts'
@@ -46,6 +38,12 @@ const BUILTIN_TABS = ['pen', 'layers'] as const
 const TAB_ICONS: Readonly<Record<string, string>> = {
   pen: 'pen',
   layers: 'layers',
+}
+
+const SAVE_ICONS: Readonly<Record<SaveState, string>> = {
+  saved: 'check',
+  saving: 'saving',
+  failed: 'alert',
 }
 
 const PHONE_QUERY = '(max-width: 720px), (max-height: 520px)'
@@ -410,14 +408,22 @@ export function editorScene(app: App, note: Note, onExit: () => void): Scene {
 
   renderTitle()
 
-  const saveMark = h('span', { class: 'save-mark' })
+  const saveMark = h('span', { class: 'save-mark', role: 'status' })
+  let shownSave: SaveState = 'saved'
 
   scope.effect(() => {
     const state = session.saveState.value
 
     saveMark.className = `save-mark is-${state}`
-    fill(saveMark, icon(state === 'saved' ? 'check' : 'more'))
+    fill(saveMark, icon(SAVE_ICONS[state]))
     saveMark.title = t(`save.${state}`)
+    saveMark.setAttribute('aria-label', t(`save.${state}`))
+
+    if (state === 'failed' && shownSave !== 'failed') {
+      toast(t('save.failed'), { isError: true })
+    }
+
+    shownSave = state
   })
 
   const undoButton = key({
@@ -1220,7 +1226,7 @@ export function editorScene(app: App, note: Note, onExit: () => void): Scene {
         return true
       case 'Enter':
       case 'Start':
-        if (focusedElement()?.matches('[data-nav]')) return false
+        if (nav.isKeyFocus) return false
 
         togglePlay()
 
@@ -1251,6 +1257,8 @@ export function editorScene(app: App, note: Note, onExit: () => void): Scene {
         setFolded(!settings.panelFolded.peek())
 
         return true
+      case ' ':
+        return !nav.isKeyFocus
       case 'Tab':
         return false
     }
