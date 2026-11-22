@@ -62,7 +62,9 @@ export function wobbleVariants(
   kind: WobbleKind,
   strength: number,
 ): (Uint8Array | null)[][] {
-  const { width, height } = editor.note.meta
+  const { meta, profile } = editor.note
+  const { width, height } = meta
+  const hasCoverage = profile.inkSlots === 0
   const page = editor.page.peek()
   const field = new WarpField(width, height)
   const [wavelength, amplitude] = WOBBLE_SHAPES[kind][strength]
@@ -80,7 +82,7 @@ export function wobbleVariants(
 
         const moved = new Uint8Array(plane.length)
 
-        field.apply(plane, moved)
+        field.resample(plane, moved, hasCoverage)
 
         return moved
       }),
