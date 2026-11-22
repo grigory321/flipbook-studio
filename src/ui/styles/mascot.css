@@ -1,0 +1,147 @@
+@property --mascot-x {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --mascot-y {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --mascot-squash {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+
+.mascot {
+  --pixel: clamp(0.3px, 0.07vmin, 0.56px);
+  --outline: max(2px, calc(var(--pixel) * 7));
+  position: relative;
+  width: calc(var(--pixel) * 780);
+  height: calc(var(--pixel) * 160);
+  filter: drop-shadow(var(--outline) 0 0 #fff)
+    drop-shadow(calc(var(--outline) * -1) 0 0 #fff)
+    drop-shadow(0 var(--outline) 0 #fff)
+    drop-shadow(0 calc(var(--outline) * -1) 0 #fff)
+    drop-shadow(0 4px 0 var(--orange-800));
+  pointer-events: none;
+}
+
+.mascot-actor {
+  --facing-x: 1;
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(calc(var(--pixel) * var(--mascot-x)))
+    scaleX(var(--facing-x));
+}
+
+.mascot-actor[data-facing='right'] {
+  --facing-x: -1;
+}
+
+.mascot-body {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  transform: translateY(calc(var(--pixel) * var(--mascot-y) * -1))
+    scaleY(var(--mascot-squash));
+  transform-origin: 0 100%;
+}
+
+.mascot-pose,
+.mascot-dash {
+  position: absolute;
+  left: calc(var(--pixel) * var(--left));
+  bottom: 0;
+  display: none;
+  width: calc(var(--pixel) * var(--width));
+  height: auto;
+  overflow: visible;
+  shape-rendering: crispEdges;
+}
+
+.mascot[data-pose='stand'] .mascot-pose[data-pose='stand'],
+.mascot[data-pose='jump'] .mascot-pose[data-pose='jump'],
+.mascot[data-pose='flat'] .mascot-pose[data-pose='flat'],
+.mascot[data-pose='look'] .mascot-pose[data-pose='look'],
+.mascot.is-airborne .mascot-dash {
+  display: block;
+}
+
+.mascot-eyes {
+  fill: #fff;
+}
+
+.mascot-ink {
+  fill: #1b1a18;
+  fill-rule: evenodd;
+}
+
+.mascot-belly,
+.mascot-spark {
+  fill: #fd7103;
+  fill-rule: evenodd;
+}
+
+.mascot-spark {
+  display: none;
+}
+
+.mascot.is-surprised .mascot-spark {
+  display: inline;
+}
+
+.mascot.is-sleeping .mascot-body {
+  animation: mascot-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes mascot-breathe {
+  50% {
+    --mascot-squash: 0.9;
+  }
+}
+
+.mascot-zzz {
+  position: absolute;
+  left: calc(var(--pixel) * -120);
+  bottom: calc(var(--pixel) * 100);
+  display: none;
+}
+
+.mascot.is-sleeping .mascot-zzz {
+  display: block;
+}
+
+.mascot-z {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: calc(var(--pixel) * (44 + var(--index) * 11));
+  fill: #fd7103;
+  shape-rendering: crispEdges;
+  opacity: 0;
+  animation: mascot-z 2.4s linear infinite;
+  animation-delay: calc(var(--index) * 0.8s);
+}
+
+@keyframes mascot-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+
+  20%,
+  75% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--pixel) * -40), calc(var(--pixel) * -170))
+      scale(1.1);
+  }
+}

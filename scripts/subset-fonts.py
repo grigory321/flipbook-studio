@@ -30,6 +30,15 @@ def source_text() -> str:
     return re.sub(r'\s', '', text)
 
 
+def site_text() -> str:
+    text = ''
+
+    for path in list(pathlib.Path('site-src').rglob('*.ts')) + list(pathlib.Path('src/i18n').rglob('*.ts')):
+        text += path.read_text(encoding='utf-8')
+
+    return re.sub(r'\s', '', text)
+
+
 def subset_slice(path: pathlib.Path, text: str) -> TTFont | None:
     font = TTFont(path)
     available = set(font.getBestCmap())
@@ -66,7 +75,7 @@ def merge(fonts: list[TTFont]) -> TTFont:
     return Merger(MergeOptions()).merge(streams)
 
 
-def build_weight(weight: str, text: str) -> None:
+def build_weight(weight: str, text: str, name: str = 'zen-maru') -> None:
     pieces = []
 
     for script in SCRIPTS:
@@ -82,7 +91,7 @@ def build_weight(weight: str, text: str) -> None:
 
     OUTPUT.mkdir(parents=True, exist_ok=True)
 
-    target = OUTPUT / f'zen-maru-{weight}.woff2'
+    target = OUTPUT / f'{name}-{weight}.woff2'
 
     font.save(target)
     print(target, target.stat().st_size, 'bytes,', len(pieces), 'pieces')
@@ -93,6 +102,11 @@ def main() -> None:
 
     for weight, kind in WEIGHTS.items():
         build_weight(weight, all_text if kind == 'all' else TITLE_TEXT)
+
+    home_text = site_text() + KANA + KATAKANA + LATIN + LATIN_EXTRA + CYRILLIC
+
+    for weight in WEIGHTS:
+        build_weight(weight, home_text, 'site-zen-maru')
 
 
 if __name__ == '__main__':

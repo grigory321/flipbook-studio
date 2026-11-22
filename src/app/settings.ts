@@ -18,7 +18,9 @@ const STORAGE_KEY = 'flipbook.settings'
 
 export type Hand = 'right' | 'left'
 
-export type PaperLook = 'notebook' | 'plain'
+export type ShelfSort = 'modified' | 'title' | 'pages'
+
+export type ShelfView = 'grid' | 'list'
 
 export interface StoredShape {
   id: MyShapeKind
@@ -97,17 +99,12 @@ export const settings = {
   drawSounds: setting('drawSounds', parseWith(isBoolean), true),
   sfxVolume: setting('sfxVolume', parseWith(isNumber), 6),
   hand: setting('hand', parseWith(oneOf<Hand>(['right', 'left'])), 'right'),
-  paperLook: setting(
-    'paperLook',
-    parseWith(oneOf<PaperLook>(['notebook', 'plain'])),
-    'notebook',
-  ),
   stabilizer: setting('stabilizer', parseWith(isNumber), 2),
   smoothLines: setting('smoothLines', parseWith(isBoolean), true),
   penPressure: setting('penPressure', parseWith(isBoolean), true),
   onionBefore: setting('onionBefore', parseOnion, 1),
   onionAfter: setting('onionAfter', parseOnion, 1),
-  skipTitle: setting('skipTitle', parseWith(isBoolean), false),
+  titleEveryTime: setting('titleEveryTime', parseWith(isBoolean), false),
   exportLines: setting('exportLines', parseWith(isBoolean), false),
   stepSounds: setting('stepSounds', parseWith(isBoolean), true),
   seenTips: setting('seenTips', parseWith(isBoolean), false),
@@ -115,6 +112,17 @@ export const settings = {
   disabledPlugins: setting('disabledPlugins', parseListOf(isString), []),
   myShapes: setting('myShapes', parseListOf(isStoredShape), []),
   myPatterns: setting('myPatterns', parseListOf(isStoredPattern), []),
+  shelfSort: setting(
+    'shelfSort',
+    parseWith(oneOf<ShelfSort>(['modified', 'title', 'pages'])),
+    'modified',
+  ),
+  shelfView: setting(
+    'shelfView',
+    parseWith(oneOf<ShelfView>(['grid', 'list'])),
+    'grid',
+  ),
+  bookmarks: setting('bookmarks', parseListOf(isString), []),
 }
 
 function save(): void {

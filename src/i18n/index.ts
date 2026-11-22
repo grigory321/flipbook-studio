@@ -89,6 +89,32 @@ export function plural(key: string, count: number): string {
   return t(chosen, { n: count })
 }
 
+const RELATIVE_UNITS: readonly [Intl.RelativeTimeFormatUnit, number][] = [
+  ['second', 60],
+  ['minute', 60],
+  ['hour', 24],
+  ['day', 7],
+]
+
+export function formatRelative(time: number, now = Date.now()): string {
+  let value = (time - now) / 1000
+
+  for (const [unit, size] of RELATIVE_UNITS) {
+    if (Math.abs(value) < size) {
+      return new Intl.RelativeTimeFormat(language.peek(), {
+        numeric: 'auto',
+      }).format(unit === 'second' ? 0 : Math.round(value), unit)
+    }
+
+    value /= size
+  }
+
+  return new Intl.DateTimeFormat(language.peek(), {
+    month: 'short',
+    day: 'numeric',
+  }).format(time)
+}
+
 export function formatDate(time: number): string {
   return new Intl.DateTimeFormat(language.peek(), {
     month: 'short',

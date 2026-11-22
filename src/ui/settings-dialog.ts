@@ -201,7 +201,7 @@ export function openAppSettings(app: App): void {
         max: 10,
       }),
       settingToggle(t('settings.stepSounds'), settings.stepSounds),
-      settingToggle(t('settings.skipTitle'), settings.skipTitle),
+      settingToggle(t('settings.titleEveryTime'), settings.titleEveryTime),
       h('h3', { class: 'field-label' }, t('settings.drawing')),
       settingSlider(t('settings.stabilizer'), settings.stabilizer, {
         min: 0,
@@ -211,11 +211,6 @@ export function openAppSettings(app: App): void {
       choiceRow(settings.hand, [
         ['right', t('settings.hand.right')],
         ['left', t('settings.hand.left')],
-      ]),
-      h('h3', { class: 'field-label' }, t('settings.paper')),
-      choiceRow(settings.paperLook, [
-        ['notebook', t('settings.paper.notebook')],
-        ['plain', t('settings.paper.plain')],
       ]),
       h('h3', { class: 'field-label' }, t('settings.onion')),
       settingSlider(

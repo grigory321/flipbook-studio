@@ -9,7 +9,15 @@ import type { Tool, ToolPoint } from '../../app/tools.ts'
 import { Compositor, type Region } from '../../core/compositor.ts'
 import { Signal } from '../../core/signal.ts'
 import { t } from '../../i18n/index.ts'
-import { eventElement, h, key, Scope, setPressed, SVG_NS } from '../dom.ts'
+import {
+  eventElement,
+  h,
+  icon,
+  key,
+  Scope,
+  setPressed,
+  SVG_NS,
+} from '../dom.ts'
 import { openMenu, toast } from '../overlay.ts'
 import {
   playSfx,
@@ -30,12 +38,10 @@ const ONION_AFTER = 0xa87fff
 const ONION_ALPHA = 0x80
 const FIT_MARGIN = 28
 const BINDING_ROOM = 8
-const STACK_SHOWN = 20
 const PAN_KEEP = 56
 const FLIP_MIN_INTERVAL_MS = 90
 const SCRIBBLE_FULL_SPEED = 1.6
 const SCRIBBLE_DECAY = 0.75
-const GRAIN_SIZE = 96
 const FRAME_DOTS = 9
 const FRAME_STEM = 26
 const POINTER_REACH = 12
@@ -97,6 +103,8 @@ export class Stage {
   private readonly pageNumber = h('span', { class: 'page-number' })
   private readonly dotGrid = h('div', { class: 'page-grid', hidden: true })
   private readonly sheets = h('div', { class: 'page-sheets' })
+  private readonly layerLabel = h('span', { class: 'page-layer-name' })
+  private readonly pageCount = h('span', { class: 'page-count' })
   private readonly cursor = h('div', { class: 'brush-cursor', hidden: true })
   private readonly frame = document.createElementNS(SVG_NS, 'svg')
   private readonly frameLine = document.createElementNS(SVG_NS, 'polygon')
@@ -183,11 +191,16 @@ export class Stage {
 
     const holder = this.holder
 
-    holder.append(this.sheets, this.underCanvas, this.page, this.curl.element)
+    holder.append(
+      this.sheets,
+      this.pageHead(),
+      this.underCanvas,
+      this.page,
+      this.curl.element,
+    )
     holder.dataset.kind = editor.note.profile.id
     holder.style.setProperty('--page-width', `${width}px`)
     holder.style.setProperty('--page-height', `${height}px`)
-    holder.style.setProperty('--grain', paperGrain())
 
     this.buildFrame()
 
@@ -448,7 +461,6 @@ export class Stage {
       const flip = this.prepareFlip(page)
 
       this.renderFull()
-      if (flip !== 'forward') this.showSpread(page)
       if (flip) this.playFlip(flip)
     })
 
@@ -467,13 +479,6 @@ export class Stage {
       this.element.classList.toggle('is-dot', isDot)
       this.dotGrid.hidden = !isVisible
       this.dotGrid.style.setProperty('--cell', `${size}px`)
-    })
-
-    this.scope.effect(() => {
-      this.element.classList.toggle(
-        'is-plain',
-        settings.paperLook.value === 'plain',
-      )
     })
 
     this.scope.effect(() => {
@@ -518,13 +523,68 @@ export class Stage {
 
     this.page.dataset.paper = meta.paperStyle
     this.underCanvas.dataset.paper = meta.paperStyle
-    this.showSpread(this.editor.page.peek())
   }
 
-  private showSpread(page: number): void {
-    const after = Math.min(STACK_SHOWN, this.editor.pageCount - page - 1)
+  private pageHead(): HTMLElement {
+    const editor = this.editor
+    const layerButton = h(
+      'button',
+      {
+        class: 'page-layer-pick',
+        type: 'button',
+        onPointerDown: (event: PointerEvent) => event.stopPropagation(),
+        onClick: () => {
+          const { layers } = editor.note.meta
 
-    this.holder.style.setProperty('--after', String(after))
+          openMenu(
+            layerButton,
+            layers.map((layer, index) => ({
+              label: layer.name,
+              icon: index === editor.layer.peek() ? 'check' : undefined,
+              onSelect: () => {
+                editor.layer.value = index
+                editor.touchSettings()
+              },
+            })),
+          )
+        },
+      },
+      this.layerLabel,
+      icon('down'),
+    )
+
+    this.scope.effect(() => {
+      editor.settingsVersion.value
+
+      const layer = editor.note.meta.layers[editor.layer.value]
+
+      this.layerLabel.textContent = layer
+        ? t('stage.layer', { name: layer.name })
+        : ''
+      layerButton.disabled = editor.note.meta.layers.length < 2
+    })
+
+    this.scope.effect(() => {
+      editor.pagesVersion.value
+      this.pageCount.textContent = t('stage.pageOf', {
+        page: editor.page.value + 1,
+        count: editor.pageCount,
+      })
+    })
+
+    return h(
+      'div',
+      { class: 'page-head' },
+      layerButton,
+      h(
+        'span',
+        { class: 'page-clips', 'aria-hidden': 'true' },
+        h('i'),
+        h('i'),
+        h('i'),
+      ),
+      this.pageCount,
+    )
   }
 
   private prepareFlip(page: number): CurlDirection | null {
@@ -573,8 +633,6 @@ export class Stage {
     this.curl.play(direction, () => {
       this.page.style.visibility = ''
       this.underCanvas.hidden = true
-
-      if (direction === 'forward') this.showSpread(this.editor.page.peek())
     })
   }
 
@@ -1308,31 +1366,6 @@ export class Stage {
   dispose(): void {
     this.scope.dispose()
   }
-}
-
-function paperGrain(): string {
-  const canvas = document.createElement('canvas')
-  const context = canvas.getContext('2d')
-
-  canvas.width = GRAIN_SIZE
-  canvas.height = GRAIN_SIZE
-
-  if (!context) return 'none'
-
-  const image = context.createImageData(GRAIN_SIZE, GRAIN_SIZE)
-
-  for (let index = 0; index < image.data.length; index += 4) {
-    const shade = 90 + Math.random() * 70
-
-    image.data[index] = shade + 8
-    image.data[index + 1] = shade + 6
-    image.data[index + 2] = shade
-    image.data[index + 3] = Math.random() * 11
-  }
-
-  context.putImageData(image, 0, 0)
-
-  return `url(${canvas.toDataURL()})`
 }
 
 function isTyping(event: KeyboardEvent): boolean {

@@ -89,6 +89,18 @@ export function titleScene(callbacks: TitleCallbacks): Scene {
   }
 }
 
+const TITLE_SEEN_KEY = 'flipbook.titleSeen'
+
 export function shouldSkipTitle(): boolean {
-  return settings.skipTitle.peek()
+  if (settings.titleEveryTime.peek()) return false
+
+  try {
+    if (localStorage.getItem(TITLE_SEEN_KEY)) return true
+
+    localStorage.setItem(TITLE_SEEN_KEY, '1')
+  } catch {
+    return false
+  }
+
+  return false
 }

@@ -1,10 +1,10 @@
 import { h, SVG_NS } from './dom.ts'
 
-type Pose = 'stand' | 'jump' | 'flat' | 'look'
+export type Pose = 'stand' | 'jump' | 'flat' | 'look'
 
 type Facing = 'left' | 'right'
 
-interface Art {
+export interface Art {
   box: readonly [number, number, number, number]
   left: number
   eyes: string
@@ -27,9 +27,9 @@ const LAND_MS = 140
 const TURN_MS = 260
 const NAP_MS = 3600
 const Z_COUNT = 3
-const Z_GLYPH = 'M0 0h5v1H0zM3 1h1v1H3zM2 2h1v1H2zM1 3h1v1H1zM0 4h5v1H0z'
+export const Z_GLYPH = 'M0 0h5v1H0zM3 1h1v1H3zM2 2h1v1H2zM1 3h1v1H1zM0 4h5v1H0z'
 
-const POSES: Readonly<Record<Pose, Art>> = {
+export const POSES: Readonly<Record<Pose, Art>> = {
   stand: {
     box: [76, 810, 302, 150],
     left: -151,
@@ -64,9 +64,9 @@ const POSES: Readonly<Record<Pose, Art>> = {
   },
 }
 
-const SPARK =
+export const SPARK =
   'M480 710V711H476V712H477V714H476V718H477V727H476V728H477V729H481V742H482V746H490V745H493V730H492V729H491V727H490V726H487V711H486V710ZM443 726V727H440V729H438V730H436V735H435V736H436V737H437V738H438V739H439V740H441V745H442V746H445V745H446V746H447V750H446V751H447V752H452V758H455V760H456V761H460V760H461V758H463V757H464V752H463V746H457V740H453V739H452V734H447V730H446V729H445V727H444V726ZM417 763V774H424V779H425V780H435V783H436V786H448V777H445V776H444V775H443V774H441V773H436V772H435V770H436V769H435V768H427V767H426V763Z'
-const DASH: Art = {
+export const DASH: Art = {
   box: [466, 936, 156, 16],
   left: -156,
   eyes: '',

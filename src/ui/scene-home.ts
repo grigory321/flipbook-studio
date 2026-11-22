@@ -1,6 +1,7 @@
 import { exportSaved } from '../app/background.ts'
 import { fillSampleNote } from '../app/sample.ts'
 import type { Session } from '../app/session.ts'
+import { settings, type ShelfSort } from '../app/settings.ts'
 import { Compositor } from '../core/compositor.ts'
 import {
   createId,
@@ -10,7 +11,7 @@ import {
 } from '../core/note.ts'
 import { PROFILES, type ProfileId, rgbCss } from '../core/profile.ts'
 import type { NoteCard } from '../file/library.ts'
-import { formatDate, plural, t } from '../i18n/index.ts'
+import { formatDate, formatRelative, plural, t } from '../i18n/index.ts'
 import { type App, pickFile, saveFile, type Scene } from './app.ts'
 import { fill, h, icon, key, Scope } from './dom.ts'
 import { nav } from './nav.ts'
@@ -132,12 +133,38 @@ function profileLabel(profile: ProfileId): string {
   return t(`profile.${profile}`)
 }
 
-function stackOf(pages: number): number {
-  if (pages <= 8) return 1
-  if (pages <= 40) return 2
-  if (pages <= 200) return 3
+const SORT_LABELS: Readonly<Record<ShelfSort, string>> = {
+  modified: 'home.sortModified',
+  title: 'home.sortTitle',
+  pages: 'home.sortPages',
+}
 
-  return 4
+const SORTS: readonly ShelfSort[] = ['modified', 'title', 'pages']
+
+function isBookmarked(card: NoteCard): boolean {
+  return settings.bookmarks.peek().includes(card.id)
+}
+
+function sortCards(cards: readonly NoteCard[], sort: ShelfSort): NoteCard[] {
+  const collator = new Intl.Collator(undefined, { numeric: true })
+  const order = (a: NoteCard, b: NoteCard): number => {
+    if (sort === 'title') {
+      return (
+        collator.compare(
+          a.title || t('home.untitled'),
+          b.title || t('home.untitled'),
+        ) || b.modified - a.modified
+      )
+    }
+
+    if (sort === 'pages') return b.pages - a.pages || b.modified - a.modified
+
+    return b.modified - a.modified
+  }
+
+  return [...cards].sort(
+    (a, b) => Number(isBookmarked(b)) - Number(isBookmarked(a)) || order(a, b),
+  )
 }
 
 function coverCanvas(card: NoteCard): HTMLCanvasElement {
@@ -160,6 +187,23 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
   const detailLine = h('p', { class: 'info-detail' })
   const clock = h('span', { class: 'clock' })
   const grid = h('div', { class: 'shelf-grid', role: 'listbox' })
+  const sortButton = key({
+    icon: 'sort',
+    label: t(SORT_LABELS[settings.shelfSort.peek()]),
+    class: 'shelf-sort',
+    title: t('home.sort'),
+    onPress: button => showSortMenu(button),
+  })
+  const sortLabel = sortButton.querySelector('.key-label')
+  const viewButton = key({
+    icon: 'list',
+    class: 'shelf-view',
+    onPress: () => {
+      settings.shelfView.value =
+        settings.shelfView.peek() === 'grid' ? 'list' : 'grid'
+      renderView()
+    },
+  })
   const previewFrame = h('div', { class: 'preview-frame' }, preview.canvas)
   const infoActions = h('div', { class: 'info-actions' })
   let cards: NoteCard[] = []
@@ -227,8 +271,55 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
     )
   }
 
+  const renderView = (): void => {
+    const isList = settings.shelfView.peek() === 'list'
+    const label = t(isList ? 'home.viewGrid' : 'home.viewList')
+
+    grid.classList.toggle('is-list', isList)
+    fill(viewButton, icon(isList ? 'grid' : 'list'))
+    viewButton.title = label
+    viewButton.setAttribute('aria-label', label)
+  }
+
+  const showSortMenu = (anchor: HTMLElement): void => {
+    openMenu(
+      anchor,
+      SORTS.map(sort => ({
+        label: t(SORT_LABELS[sort]),
+        icon: sort === settings.shelfSort.peek() ? 'check' : undefined,
+        onSelect: () => {
+          settings.shelfSort.value = sort
+          if (sortLabel) sortLabel.textContent = t(SORT_LABELS[sort])
+          renderGrid()
+          scrollToSelected()
+        },
+      })),
+    )
+  }
+
+  const toggleBookmark = (card: NoteCard): void => {
+    const marks = settings.bookmarks.peek()
+
+    settings.bookmarks.value = marks.includes(card.id)
+      ? marks.filter(id => id !== card.id)
+      : [...marks, card.id]
+    renderGrid()
+    scrollToSelected()
+  }
+
+  const scrollToSelected = (): void => {
+    grid
+      .querySelector<HTMLElement>('.card.is-selected')
+      ?.scrollIntoView({ block: 'nearest' })
+  }
+
   const showCardMenu = (card: NoteCard, anchor: HTMLElement): void => {
     openMenu(anchor, [
+      {
+        label: t(isBookmarked(card) ? 'home.unbookmark' : 'home.bookmark'),
+        icon: 'bookmark',
+        onSelect: () => toggleBookmark(card),
+      },
       {
         label: t('home.duplicate'),
         icon: 'pages',
@@ -295,18 +386,20 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
   }
 
   const renderGrid = (): void => {
+    const now = Date.now()
+
+    cards = sortCards(cards, settings.shelfSort.peek())
     fill(
       grid,
       cards.map(card =>
         h(
           'button',
           {
-            class: 'card',
+            class: `card${selected?.id === card.id ? ' is-selected' : ''}`,
             'data-kind': card.profile,
             type: 'button',
             'data-nav': true,
             'data-id': card.id,
-            'data-stack': stackOf(card.pages),
             role: 'option',
             'aria-label': card.title || t('home.untitled'),
             onFocus: () => select(card),
@@ -315,34 +408,23 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
               else select(card)
             },
           },
+          h('span', { class: 'card-title' }, card.title || t('home.untitled')),
           h(
             'span',
-            { class: 'card-cover' },
-            h('span', { class: 'card-spine' }),
-            h(
-              'span',
-              { class: 'card-name' },
-              h(
-                'span',
-                { class: 'card-title' },
-                card.title || t('home.untitled'),
-              ),
-            ),
-            h(
-              'span',
-              { class: 'card-panel' },
-              h(
-                'span',
-                { class: 'card-picture', 'data-paper': card.paperStyle },
-                coverCanvas(card),
-              ),
-              h(
-                'span',
-                { class: 'card-pages' },
-                plural('common.pages', card.pages),
-              ),
-            ),
+            { class: 'card-picture', 'data-paper': card.paperStyle },
+            coverCanvas(card),
           ),
+          h(
+            'span',
+            { class: 'card-meta' },
+            t('home.meta', {
+              pages: plural('common.pages', card.pages),
+              when: formatRelative(card.modified, now),
+            }),
+          ),
+          isBookmarked(card)
+            ? h('span', { class: 'card-ribbon', 'aria-hidden': 'true' })
+            : null,
         ),
       ),
     )
@@ -428,7 +510,7 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
     newButton,
     key({
       icon: 'upload',
-      label: t('home.import'),
+      title: t('home.import'),
       onPress: () => void importFile(),
     }),
     key({
@@ -460,7 +542,13 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
       h(
         'section',
         { class: 'screen screen-shelf' },
-        h('h2', { class: 'screen-heading' }, t('home.shelf')),
+        h(
+          'div',
+          { class: 'shelf-head' },
+          h('h2', { class: 'screen-heading' }, t('home.shelf')),
+          sortButton,
+          viewButton,
+        ),
         grid,
         actions,
       ),
@@ -478,6 +566,7 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
   }
 
   updateClock()
+  renderView()
 
   const clockTimer = window.setInterval(updateClock, 20_000)
 
@@ -521,6 +610,13 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
   }
 }
 
+function wideIndex(profile: ProfileId): number {
+  return Math.max(
+    0,
+    PROFILES[profile].sizes.findIndex(size => size.id === 'wide'),
+  )
+}
+
 function openNewNoteDialog(
   create: (options: NoteOptions) => Promise<void>,
 ): void {
@@ -529,7 +625,12 @@ function openNewNoteDialog(
     size: number
     paper: number
     paperStyle: PaperStyle
-  } = { profile: 'free', size: 0, paper: 0, paperStyle: 'ruled' }
+  } = {
+    profile: 'free',
+    size: wideIndex('free'),
+    paper: 0,
+    paperStyle: 'plain',
+  }
 
   const details = h('div', { class: 'new-details' })
   let dialog: DialogHandle | null = null
@@ -561,9 +662,9 @@ function openNewNoteDialog(
         'aria-pressed': String(profile === choice.profile),
         onClick: () => {
           choice.profile = profile
-          choice.size = 0
+          choice.size = wideIndex(profile)
           choice.paper = 0
-          choice.paperStyle = profile === 'free' ? 'ruled' : 'plain'
+          choice.paperStyle = 'plain'
 
           for (const other of kindCards) {
             other.setAttribute('aria-pressed', String(other === card))

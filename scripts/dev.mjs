@@ -1,7 +1,7 @@
 import { readFileSync, watch } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname } from 'node:path'
-import { buildSite } from './build.mjs'
+import { buildHome, buildSite } from './build.mjs'
 
 const PORT = Number(process.env.PORT ?? 5173)
 const BASE = new URL(JSON.parse(readFileSync('package.json', 'utf8')).homepage)
@@ -11,21 +11,34 @@ const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.webmanifest': 'application/manifest+json',
+  '.css': 'text/css; charset=utf-8',
+  '.woff2': 'font/woff2',
 }
 
-let site = await buildSite()
+async function buildAll() {
+  const [app, home] = await Promise.all([buildSite(), buildHome()])
+
+  for (const [name, contents] of home) app.set(`site/${name}`, contents)
+
+  return app
+}
+
+let site = await buildAll()
 let timer = null
 
-watch('src', { recursive: true }, () => {
+function rebuild() {
   clearTimeout(timer)
   timer = setTimeout(() => {
-    buildSite()
+    buildAll()
       .then(next => {
         site = next
       })
       .catch(error => console.error(error.message))
   }, 120)
-})
+}
+
+watch('src', { recursive: true }, rebuild)
+watch('site-src', { recursive: true }, rebuild)
 
 createServer((request, response) => {
   const path = decodeURIComponent(new URL(request.url, 'http://x').pathname)
@@ -37,7 +50,16 @@ createServer((request, response) => {
     return
   }
 
-  const file = path.slice(BASE.length) || 'index.html'
+  const relative = path.slice(BASE.length)
+  const file =
+    !relative || relative.endsWith('/') ? `${relative}index.html` : relative
+
+  if (!site.has(file) && site.has(`${file}/index.html`)) {
+    response.writeHead(301, { Location: `${path}/` })
+    response.end()
+
+    return
+  }
   const contents = site.get(file)
 
   if (contents === undefined) {
