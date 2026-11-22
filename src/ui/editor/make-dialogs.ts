@@ -1,4 +1,5 @@
 import type { Editor } from '../../app/editor.ts'
+import { Compositor } from '../../core/compositor.ts'
 import {
   makeMotionPath,
   type MotionEase,
@@ -8,6 +9,8 @@ import {
   applyRange,
   buildMotion,
   insertWobble,
+  sourcePlanes,
+  wobbleVariants,
   type MotionMode,
   type MotionOptions,
   placeOnPath,
@@ -25,6 +28,8 @@ const PREVIEW_MS = 1000 / 10
 const SCALE_PERCENT = 100
 const ADD_PAGES_MAX = 60
 const ADD_PAGES_DEFAULT = 10
+const WOBBLE_COUNT_MAX = 24
+const WOBBLE_COUNT_DEFAULT = 5
 
 function chipRow<T extends string | number>(
   label: string,
@@ -241,9 +246,72 @@ export function openPathDialog(
 }
 
 export function openWobbleDialog(editor: Editor): void {
-  let count = 2
+  const { meta } = editor.note
+  const scope = new Scope()
+  const room = Math.min(
+    WOBBLE_COUNT_MAX,
+    editor.note.profile.maxPages - editor.pageCount,
+  )
+
+  if (room < 1) {
+    toast(t('page.full'), { isError: true })
+
+    return
+  }
+
+  let count = Math.min(WOBBLE_COUNT_DEFAULT, room)
   let strength = 1
   let kind: WobbleKind = 'line'
+
+  const planes = sourcePlanes(editor)
+  const compositor = new Compositor(editor.note)
+  const whole = {
+    left: 0,
+    top: 0,
+    right: meta.width - 1,
+    bottom: meta.height - 1,
+  }
+  const preview = h('canvas', {
+    class: 'motion-preview',
+    width: meta.width,
+    height: meta.height,
+    style: `background-color:${editor.paperColor()}`,
+  })
+  const context = preview.getContext('2d')
+  const page = editor.page.peek()
+
+  let pictures: ImageData[] = []
+  let step = 0
+
+  const makePictures = (): void => {
+    pictures = wobbleVariants(editor, planes, kind, strength).map(variant => {
+      compositor.composeRegion(
+        page,
+        variant.map(plane => plane ?? new Uint8Array(meta.width * meta.height)),
+        whole,
+      )
+
+      return new ImageData(
+        new Uint8ClampedArray(compositor.pixels.slice().buffer),
+        meta.width,
+        meta.height,
+      )
+    })
+  }
+
+  const showFrame = (): void => {
+    if (!context || pictures.length === 0) return
+
+    context.putImageData(pictures[step % pictures.length], 0, 0)
+    step++
+  }
+
+  makePictures()
+  showFrame()
+
+  const timer = window.setInterval(showFrame, 1000 / editor.note.fps)
+
+  scope.add(() => clearInterval(timer))
 
   const create = async (): Promise<void> => {
     dialog.close()
@@ -255,7 +323,10 @@ export function openWobbleDialog(editor: Editor): void {
   const dialog = openDialog({
     title: t('wobble.title'),
     icon: 'wobble',
+    isWide: true,
+    onClose: () => scope.dispose(),
     body: [
+      preview,
       h('p', { class: 'dialog-text' }, t('wobble.detail')),
       chipRow<WobbleKind>(
         t('wobble.kind'),
@@ -266,6 +337,7 @@ export function openWobbleDialog(editor: Editor): void {
         kind,
         value => {
           kind = value
+          makePictures()
         },
       ),
       chipRow<number>(
@@ -278,9 +350,10 @@ export function openWobbleDialog(editor: Editor): void {
         strength,
         value => {
           strength = value
+          makePictures()
         },
       ),
-      sliderRow(t('wobble.count'), count, { min: 1, max: 7 }, value => {
+      sliderRow(t('wobble.count'), count, { min: 1, max: room }, value => {
         count = value
       }),
     ],

@@ -416,7 +416,7 @@ export const es = {
   'path.create': 'Crear',
   'wobble.title': 'Páginas temblorosas',
   'wobble.detail':
-    'Añade copias algo movidas justo después, para que las líneas tiemblen.',
+    'Añade copias ligeramente curvadas después de esta página y las alterna con el original para que las líneas tiemblen como en un dibujo a mano.',
   'wobble.kind': 'Tipo',
   'wobble.line': 'Líneas',
   'wobble.whole': 'Todo',

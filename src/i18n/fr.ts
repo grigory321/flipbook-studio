@@ -416,7 +416,7 @@ export const fr = {
   'path.create': 'Créer',
   'wobble.title': 'Pages tremblantes',
   'wobble.detail':
-    'Ajoute juste après des copies légèrement décalées pour faire vibrer les traits.',
+    'Ajoute après cette page des copies légèrement courbées, en alternance avec l’original, pour faire vibrer les traits comme un dessin à la main.',
   'wobble.kind': 'Type',
   'wobble.line': 'Traits',
   'wobble.whole': 'Tout',

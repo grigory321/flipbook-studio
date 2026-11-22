@@ -412,7 +412,7 @@ export const ja = {
   'path.create': 'つくる',
   'wobble.title': 'ゆらゆら差分',
   'wobble.detail':
-    '絵が少しゆれたページをつくって、すぐあとへ足します。線がふるえる動きになります。',
+    'このページの線を少しずつ曲げた絵を後ろに足し、元の絵と繰り返して手描きのように線が震えるループにします。',
   'wobble.kind': 'ゆれかた',
   'wobble.line': '線だけ',
   'wobble.whole': '全体',

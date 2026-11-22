@@ -13,62 +13,120 @@ export interface WobbleOptions {
   kind: WobbleKind
 }
 
+export const WOBBLE_CYCLE = 3
+
 const WOBBLE_SHAPES: Readonly<
   Record<WobbleKind, readonly (readonly [number, number])[]>
 > = {
   line: [
-    [8, 0.75],
-    [7, 1.05],
-    [6, 1.4],
+    [30, 0.8],
+    [24, 1.2],
+    [20, 1.7],
   ],
   whole: [
-    [40, 1.6],
-    [34, 2.2],
-    [28, 3],
+    [110, 1.6],
+    [90, 2.6],
+    [72, 3.6],
   ],
 }
 
 const SEED_STEP = 0x9e3779b9
 
+export function sourcePlanes(editor: Editor): (Uint8Array | null)[] {
+  const { frames, grid, meta, store } = editor.note
+  const page = editor.page.peek()
+  const scratch = new Uint32Array(grid.count)
+  const planes: (Uint8Array | null)[] = []
+
+  for (let layer = 0; layer < frames.layers; layer++) {
+    const ref = frames.cel(page, layer)
+
+    if (ref === EMPTY_REF) {
+      planes.push(null)
+
+      continue
+    }
+
+    const plane = new Uint8Array(meta.width * meta.height)
+
+    loadPlane(store, ref, plane, grid, scratch)
+    planes.push(plane)
+  }
+
+  return planes
+}
+
+export function wobbleVariants(
+  editor: Editor,
+  planes: readonly (Uint8Array | null)[],
+  kind: WobbleKind,
+  strength: number,
+): (Uint8Array | null)[][] {
+  const { width, height } = editor.note.meta
+  const page = editor.page.peek()
+  const field = new WarpField(width, height)
+  const [wavelength, amplitude] = WOBBLE_SHAPES[kind][strength]
+  const variants: (Uint8Array | null)[][] = [planes.slice()]
+
+  for (let variant = 1; variant < WOBBLE_CYCLE; variant++) {
+    field.fillNoise(
+      Math.imul(page + 1, 31) + Math.imul(variant, SEED_STEP),
+      wavelength,
+      amplitude,
+    )
+    variants.push(
+      planes.map(plane => {
+        if (!plane) return null
+
+        const moved = new Uint8Array(plane.length)
+
+        field.apply(plane, moved)
+
+        return moved
+      }),
+    )
+  }
+
+  return variants
+}
+
 export async function insertWobble(
   editor: Editor,
   options: WobbleOptions,
 ): Promise<boolean> {
-  const { note } = editor
-  const { frames, grid, meta, store } = note
-  const page = editor.page.peek()
-
   if (!editor.canAddPages(options.count)) return false
 
   editor.dropFloating()
 
+  const { frames } = editor.note
   const { stride, layers } = frames
+  const page = editor.page.peek()
   const source = frames.copyRows(page, 1)
-  const rows = new Uint32Array(options.count * stride)
-  const plain = new Uint8Array(meta.width * meta.height)
-  const moved = new Uint8Array(meta.width * meta.height)
-  const scratch = new Uint32Array(grid.count)
-  const field = new WarpField(meta.width, meta.height)
-  const [wavelength, amplitude] = WOBBLE_SHAPES[options.kind][options.strength]
+  const variants = wobbleVariants(
+    editor,
+    sourcePlanes(editor),
+    options.kind,
+    options.strength,
+  )
+  const cycle = variants.map((planes, variant) => {
+    const row = source.slice()
 
-  for (let index = 0; index < options.count; index++) {
-    const row = rows.subarray(index * stride, (index + 1) * stride)
-
-    row.set(source)
     frames.clearRowSounds(row)
-    field.fillNoise(
-      Math.imul(page + 1, 31) + Math.imul(index + 1, SEED_STEP),
-      wavelength,
-      amplitude,
-    )
+
+    if (variant === 0) return row
 
     for (let layer = 0; layer < layers; layer++) {
-      if (source[layer] === EMPTY_REF) continue
+      const plane = planes[layer]
 
-      loadPlane(store, source[layer], plain, grid, scratch)
-      field.apply(plain, moved)
-      row[layer] = editor.packPlane(source[layer], moved)
+      if (plane) row[layer] = editor.packPlane(source[layer], plane)
     }
+
+    return row
+  })
+  const rows = new Uint32Array(options.count * stride)
+
+  for (let index = 0; index < options.count; index++) {
+    rows.set(cycle[(index + 1) % WOBBLE_CYCLE], index * stride)
   }
 
   editor.replacePages(page + 1, 0, rows, page + 1)

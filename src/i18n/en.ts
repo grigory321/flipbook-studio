@@ -415,7 +415,7 @@ export const en = {
   'path.create': 'Create',
   'wobble.title': 'Wobble pages',
   'wobble.detail':
-    'Adds slightly shifted copies right after this page, so the lines shimmer.',
+    'Adds gently bent copies after this page and cycles them with the original, so the lines shimmer like hand-drawn animation.',
   'wobble.kind': 'Type',
   'wobble.line': 'Lines',
   'wobble.whole': 'Whole picture',
