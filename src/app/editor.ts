@@ -47,6 +47,7 @@ export interface InkValue {
 
 export interface EditOptions {
   onChange?: () => void
+  startPage?: number
 }
 
 interface PageClipboard {
@@ -133,7 +134,7 @@ export class Editor {
     this.fitPlanes()
     this.surface = new Surface(grid, this.planes[0])
     this.ink.value = profile.id === 'free' ? 1 : this.defaultDeviceInk()
-    void this.openPage(0)
+    void this.openPage(options.startPage ?? 0)
   }
 
   private fitPlanes(): void {

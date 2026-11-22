@@ -1,5 +1,6 @@
+import { clearResume, readResume } from './app/resume.ts'
 import { Session } from './app/session.ts'
-import { startSavingSettings } from './app/settings.ts'
+import { settings, startSavingSettings } from './app/settings.ts'
 import type { Note } from './core/note.ts'
 import { loadStoredPlugins } from './plugin/loader.ts'
 import type { PluginDefinition } from './plugin/host.ts'
@@ -53,8 +54,26 @@ async function start(): Promise<void> {
     void app.show(() => homeScene(app, openEditor))
   }
 
-  const openEditor = (note: Note): void => {
-    void app.show(() => editorScene(app, note, showHome))
+  const openEditor = (note: Note, page = 0): void => {
+    void app.show(() => editorScene(app, note, showHome, page))
+  }
+
+  const resume = settings.titleEveryTime.peek() ? null : readResume()
+
+  if (resume) {
+    try {
+      const note = await session.openNote(resume.id)
+      const page = Math.max(0, Math.min(note.frames.count - 1, resume.page))
+
+      await note.ensurePages(page, 1)
+      openEditor(note, page)
+      registerServiceWorker()
+
+      return
+    } catch (error) {
+      console.error(error)
+      clearResume()
+    }
   }
 
   if (shouldSkipTitle()) showHome()

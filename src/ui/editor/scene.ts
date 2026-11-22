@@ -1,5 +1,6 @@
 import { Editor } from '../../app/editor.ts'
 import { Player } from '../../app/player.ts'
+import { clearResume, saveResume } from '../../app/resume.ts'
 import { settings } from '../../app/settings.ts'
 import type { Note } from '../../core/note.ts'
 import { Signal } from '../../core/signal.ts'
@@ -59,14 +60,24 @@ interface PanelView {
   dispose(): void
 }
 
-export function editorScene(app: App, note: Note, onExit: () => void): Scene {
+export function editorScene(
+  app: App,
+  note: Note,
+  onExit: () => void,
+  startPage = 0,
+): Scene {
   const session = app.session
   const scope = new Scope()
   const editor = new Editor(note, {
     onChange: () => session.scheduleSave(editor),
+    startPage,
   })
 
   editor.patternSource = () => registries.patterns.list()
+
+  scope.effect(() => {
+    saveResume({ id: note.meta.id, page: editor.page.value })
+  })
 
   const quickTool = (
     id: string,
@@ -385,6 +396,8 @@ export function editorScene(app: App, note: Note, onExit: () => void): Scene {
   }
 
   const exit = (): void => {
+    clearResume()
+
     if (editor.isPlaying.peek()) stopPlaying()
 
     editor.dropFloating()

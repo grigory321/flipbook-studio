@@ -208,6 +208,7 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
   const infoActions = h('div', { class: 'info-actions' })
   let cards: NoteCard[] = []
   let selected: NoteCard | null = null
+  let armedId: string | null = null
   let newButton: HTMLButtonElement | null = null
 
   const open = async (card: NoteCard): Promise<void> => {
@@ -403,9 +404,20 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
             role: 'option',
             'aria-label': card.title || t('home.untitled'),
             onFocus: () => select(card),
-            onClick: () => {
-              if (selected?.id === card.id) void open(card)
-              else select(card)
+            onClick: (event: MouseEvent) => {
+              const isKeyPress = event.detail === 0
+
+              if (
+                armedId === card.id ||
+                (isKeyPress && selected?.id === card.id)
+              ) {
+                void open(card)
+
+                return
+              }
+
+              select(card)
+              armedId = card.id
             },
           },
           h('span', { class: 'card-title' }, card.title || t('home.untitled')),
