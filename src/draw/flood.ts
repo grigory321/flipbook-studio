@@ -58,12 +58,14 @@ export function fillSoftEdges(surface: Surface): void {
 
 export function floodFill(
   surface: Surface,
-  startX: number,
-  startY: number,
+  pointX: number,
+  pointY: number,
   planes: readonly Uint8Array[],
   stackLimit = Infinity,
 ): void {
   const { width, height } = surface
+  const startX = Math.floor(pointX)
+  const startY = Math.floor(pointY)
 
   if (startX < 0 || startY < 0 || startX >= width || startY >= height) return
 

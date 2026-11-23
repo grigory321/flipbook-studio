@@ -405,3 +405,12 @@ test('編集: 動かしている途中の絵は、やりなおす前に確定し
   assert.equal(editor.floating.peek(), null)
   assert.equal(inked(), drawn)
 })
+
+test('塗り: 半端な座標から塗っても止まらずに塗れる', () => {
+  const surface = surfaceOf(20, 20)
+
+  floodFill(surface, 5.4, 7.8, [surface.plane])
+
+  assert.equal(surface.plane[7 * 20 + 5], surface.value)
+  assert.ok(surface.plane.every(value => value === surface.value))
+})
