@@ -108,7 +108,7 @@ export const settings = {
   exportLines: setting('exportLines', parseWith(isBoolean), false),
   stepSounds: setting('stepSounds', parseWith(isBoolean), true),
   seenTips: setting('seenTips', parseWith(isBoolean), false),
-  panelFolded: setting('panelFolded', parseWith(isBoolean), true),
+  panelFolded: setting('panelFolded', parseWith(isBoolean), false),
   disabledPlugins: setting('disabledPlugins', parseListOf(isString), []),
   myShapes: setting('myShapes', parseListOf(isStoredShape), []),
   myPatterns: setting('myPatterns', parseListOf(isStoredPattern), []),

@@ -313,10 +313,10 @@ export function openWobbleDialog(editor: Editor): void {
 
   scope.add(() => clearInterval(timer))
 
-  const create = async (): Promise<void> => {
+  const create = (): void => {
     dialog.close()
 
-    if (await insertWobble(editor, { count, strength, kind })) playSfx('page')
+    if (insertWobble(editor, { count, strength, kind })) playSfx('page')
     else toast(t('page.full'), { isError: true })
   }
 
@@ -361,7 +361,7 @@ export function openWobbleDialog(editor: Editor): void {
       icon: 'check',
       label: t('wobble.create'),
       variant: 'primary',
-      onPress: () => void create(),
+      onPress: create,
     }),
   })
 }

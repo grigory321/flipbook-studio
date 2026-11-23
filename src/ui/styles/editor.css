@@ -208,10 +208,10 @@
 .page-holder {
   --u: calc(1px / var(--zoom, 1));
   --hu: min(var(--u), calc(var(--page-width) / 440));
-  --card-radius: calc(var(--hu) * 14);
+  --card-radius: calc(var(--hu) * 20);
   --head-height: calc(var(--hu) * 34);
   position: absolute;
-  left: 50%;
+  left: calc(50% + var(--fit-shift, 0px));
   top: 50%;
   transform-origin: 50% 50%;
   perspective: calc(2200px / var(--zoom, 1));
@@ -226,9 +226,8 @@
   border-radius: var(--card-radius);
   background: #fff;
   box-shadow:
-    0 0 0 calc(var(--hu) * 1) rgb(255 188 118 / 45%),
     0 calc(var(--hu) * 4) 0 var(--orange-200),
-    0 calc(var(--hu) * 12) calc(var(--hu) * 26) rgb(255 138 30 / 22%);
+    0 calc(var(--hu) * 8) calc(var(--hu) * 16) rgb(150 75 0 / 16%);
 }
 
 .page-head {
@@ -243,8 +242,8 @@
   gap: calc(var(--hu) * 8);
   height: var(--head-height);
   padding: 0 calc(var(--hu) * 12);
-  border-bottom: calc(var(--hu) * 1) solid var(--orange-100);
-  color: var(--orange-700);
+  border-bottom: calc(var(--hu) * 2) dashed var(--orange-200);
+  color: var(--ink-soft);
   font-weight: 800;
   font-size: calc(var(--hu) * 12);
   line-height: 1;
@@ -303,7 +302,7 @@
   width: calc(var(--hu) * 34);
   height: calc(var(--hu) * 12);
   border-radius: calc(var(--hu) * 6);
-  background: var(--orange-500);
+  background: var(--orange-600);
 }
 
 .page-clips i:nth-child(2) {
@@ -605,7 +604,8 @@
   flex-direction: column;
   margin: 10px 10px 15px 0;
   border-radius: var(--radius-l);
-  background-color: var(--paper);
+  background-color: rgb(255 253 249 / 74%);
+  backdrop-filter: blur(3px);
   box-shadow: var(--shadow-screen);
   overflow: hidden;
 }
@@ -743,6 +743,7 @@
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 44px));
   gap: 7px;
+  justify-content: space-between;
 }
 
 .swatch {
@@ -1249,7 +1250,7 @@
   display: inline-flex;
 }
 
-.editor:where(.is-sheet)::before {
+.editor:where(.is-sheet, .is-tool-tabs)::before {
   display: none;
 }
 
@@ -1345,7 +1346,8 @@
   padding: 0;
   border: 0;
   border-radius: 16px 0 0 16px;
-  background: #fff;
+  background: rgb(255 255 255 / 72%);
+  backdrop-filter: blur(3px);
   color: var(--ink-soft);
   box-shadow: var(--lip);
 }
@@ -1383,6 +1385,42 @@
     / minmax(0, 1fr);
 }
 
+.editor.is-tool-tabs:not(.is-sheet) {
+  --side-width: clamp(300px, calc((100vw - var(--tool-tab)) / 3.618), 400px);
+}
+
+.editor.is-tool-tabs:not(.is-sheet) .ed-side {
+  grid-area: stage;
+  z-index: 3;
+  justify-self: end;
+  width: calc(var(--side-width) - 10px);
+}
+
+.editor[data-hand='left'].is-tool-tabs:not(.is-sheet) .ed-side {
+  justify-self: start;
+}
+
+.editor.is-tool-tabs:not(.is-sheet) .stage {
+  --fit-side: calc((var(--tool-tab) + var(--side-width)) / 2);
+  --fit-shift: calc((var(--tool-tab) - var(--side-width)) / 2);
+}
+
+.editor[data-hand='left'].is-tool-tabs:not(.is-sheet) .stage {
+  --fit-shift: calc((var(--side-width) - var(--tool-tab)) / 2);
+}
+
+.editor.is-tool-tabs:not(.is-sheet) .zoom-chip {
+  right: calc(var(--side-width) + 10px);
+}
+
+.editor[data-hand='left'].is-tool-tabs:not(.is-sheet) .zoom-chip {
+  right: calc(var(--tool-tab) + 20px);
+}
+
+.editor[data-hand='left'].is-tool-tabs:not(.is-sheet) .view-reset {
+  left: calc(var(--side-width) + 10px);
+}
+
 :where(.is-tool-tabs) .ed-tools {
   grid-area: stage;
   z-index: 2;
@@ -1405,7 +1443,8 @@
   flex-basis: 54px;
   width: var(--tool-tab);
   border-radius: 0 16px 16px 0;
-  background: #fff;
+  background: rgb(255 255 255 / 72%);
+  backdrop-filter: blur(3px);
   color: var(--ink-soft);
   box-shadow: var(--lip);
   pointer-events: auto;

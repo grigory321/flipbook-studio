@@ -166,17 +166,21 @@ export function openMenu(
 function placeMenu(menu: HTMLElement, anchor: HTMLElement): void {
   const margin = 8
   const box = anchor.getBoundingClientRect()
+  const roomBelow = innerHeight - box.bottom - margin * 2
+  const roomAbove = box.top - margin * 2
+  const opensBelow = menu.offsetHeight <= roomBelow || roomBelow >= roomAbove
+  const room = opensBelow ? roomBelow : roomAbove
+
+  menu.style.maxHeight = `${room}px`
+
   const width = menu.offsetWidth
   const height = menu.offsetHeight
-  const left = Math.min(box.left, innerWidth - width - margin)
-  const below = box.bottom + margin
-  const top =
-    below + height < innerHeight
-      ? below
-      : Math.max(margin, box.top - height - margin)
+  const isRightSide = box.left + box.width / 2 > innerWidth / 2
+  const left = isRightSide ? box.right - width : box.left
 
-  menu.style.left = `${Math.max(margin, left)}px`
-  menu.style.top = `${top}px`
+  menu.style.left = `${Math.max(margin, Math.min(left, innerWidth - width - margin))}px`
+  menu.style.top = `${opensBelow ? box.bottom + margin : box.top - margin - height}px`
+  menu.style.transformOrigin = `${isRightSide ? 'right' : 'left'} ${opensBelow ? 'top' : 'bottom'}`
 }
 
 export interface ToastOptions {

@@ -1054,7 +1054,7 @@ export function editorScene(
 
   const showPanelLayout = (): void => {
     element.classList.toggle('is-sheet', isSheet())
-    element.classList.toggle('is-tool-tabs', isSheet() && !isPhone())
+    element.classList.toggle('is-tool-tabs', !isPhone())
     element.classList.toggle('is-phone', isPhone())
     element.classList.toggle('is-one-bar', isOneBar())
     panelKey.hidden = sheetQuery.matches

@@ -13,7 +13,7 @@ export interface WobbleOptions {
   kind: WobbleKind
 }
 
-export const WOBBLE_CYCLE = 3
+const WOBBLE_CYCLE = 3
 
 const WOBBLE_SHAPES: Readonly<
   Record<WobbleKind, readonly (readonly [number, number])[]>
@@ -92,10 +92,7 @@ export function wobbleVariants(
   return variants
 }
 
-export async function insertWobble(
-  editor: Editor,
-  options: WobbleOptions,
-): Promise<boolean> {
+export function insertWobble(editor: Editor, options: WobbleOptions): boolean {
   if (!editor.canAddPages(options.count)) return false
 
   editor.dropFloating()

@@ -115,6 +115,19 @@ test('線: 消しゴムは縁の濃さを下げ、ゼロで消える', () => {
   assert.equal(plane[0], 0)
 })
 
+test('線: 半透明の消しゴムは離すまで何度こすっても決めた強さまでしか薄くならない', () => {
+  const plane = new Uint8Array(1)
+  const surface = new Surface(new TileGrid(1, 1), plane)
+
+  plane[0] = coveredValue(1, 16)
+  surface.eraseStrength = 8
+  surface.base = plane.slice()
+
+  for (let pass = 0; pass < 5; pass++) surface.uncover(0, 0, 16)
+
+  assert.equal(valueCoverage(plane[0]), 8)
+})
+
 test('線: 重ね塗りの画材はだんだん濃くなり、ペンは濃くならない', () => {
   const plane = new Uint8Array(1)
   const surface = new Surface(new TileGrid(1, 1), plane)
