@@ -908,8 +908,8 @@ export class Stage {
 
     this.zoom.value = Math.max(ZOOM_MIN, snapped)
     this.holder.style.setProperty(
-      '--head-scale',
-      String(Math.min(1, (width * this.zoom.peek()) / HEAD_WIDTH)),
+      '--head-unit',
+      `${Math.min(1 / this.zoom.peek(), width / HEAD_WIDTH)}px`,
     )
     this.panX = 0
     this.panY = 0

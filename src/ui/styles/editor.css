@@ -207,10 +207,7 @@
 
 .page-holder {
   --u: calc(1px / var(--zoom, 1));
-  --hu: min(
-    calc(var(--u) * var(--head-scale, 1)),
-    calc(var(--page-width) / 440)
-  );
+  --hu: var(--head-unit, 1px);
   --card-radius: calc(var(--hu) * 20);
   --head-height: calc(var(--hu) * 34);
   position: absolute;
