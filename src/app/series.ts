@@ -1,8 +1,9 @@
 import { loadPlane } from '../core/cel.ts'
 import { EMPTY_REF } from '../core/store.ts'
+import { fullMask } from '../draw/mask.ts'
 import { WarpField } from '../draw/warp.ts'
 import type { Editor } from './editor.ts'
-import type { Floating } from './floating.ts'
+import { type Floating, type FloatPoint, liftMask } from './floating.ts'
 import { easeAt, type MotionEase, motionAt, type MotionPath } from './motion.ts'
 
 export type WobbleKind = 'line' | 'whole'
@@ -142,23 +143,56 @@ export interface MotionOptions {
   follows: boolean
   finalScale: number
   mode: MotionMode
+  returns: boolean
+  allLayers: boolean
 }
 
-export function placeOnPath(
-  floating: Floating,
-  start: readonly [number, number],
+export interface Mover {
+  layers: number[]
+  sprite: Floating
+  home: FloatPoint
+}
+
+export function placeMover(
+  mover: Mover,
+  pivot: FloatPoint,
   options: MotionOptions,
   step: number,
 ): void {
-  const ratio = easeAt(options.ease, step / options.count)
+  const progress = step / options.count
+  const travel = options.returns ? 1 - Math.abs(progress * 2 - 1) : progress
+  const ratio = easeAt(options.ease, travel)
   const [offsetX, offsetY, turn] = motionAt(options.path, ratio)
+  const scale = 1 + (options.finalScale - 1) * ratio
+  const angle = options.follows ? turn : 0
+  const awayX = mover.home[0] - pivot[0]
+  const awayY = mover.home[1] - pivot[1]
+  const cos = Math.cos(angle) * scale
+  const sin = Math.sin(angle) * scale
 
-  floating.place(
-    start[0] + offsetX,
-    start[1] + offsetY,
-    1 + (options.finalScale - 1) * ratio,
-    options.follows ? turn : 0,
+  mover.sprite.place(
+    pivot[0] + offsetX + awayX * cos - awayY * sin,
+    pivot[1] + offsetY + awayX * sin + awayY * cos,
+    scale,
+    angle,
   )
+}
+
+export function liftLayers(
+  planes: readonly Uint8Array[],
+  taken: readonly number[],
+  width: number,
+  height: number,
+): Mover[] {
+  const mask = fullMask(width, height)
+
+  return planes.flatMap((plane, layer) => {
+    if (taken.includes(layer)) return []
+
+    const sprite = liftMask([plane], width, height, mask)
+
+    return sprite ? [{ layers: [layer], sprite, home: sprite.center }] : []
+  })
 }
 
 export async function buildMotion(
@@ -169,7 +203,6 @@ export async function buildMotion(
 
   if (!lifted) return false
 
-  const floating = lifted.bake()
   const { note } = editor
   const { frames, grid, meta, store } = note
   const { stride, layers } = frames
@@ -182,18 +215,24 @@ export async function buildMotion(
 
   await note.ensurePages(page + 1, reused)
 
-  const start = floating.center
-  const targets = editor.selectionPlanes()
-  const targetLayers = editor.selectionLayers()
-  const holes = targets.map(plane => plane.slice())
-  const holeCels = targetLayers.map((layer, order) =>
-    editor.packPlane(frames.cel(page, layer), holes[order]),
+  const sprite = lifted.bake()
+  const main: Mover = {
+    layers: editor.selectionLayers(),
+    sprite,
+    home: sprite.center,
+  }
+  const movers = options.allLayers
+    ? [main, ...liftLayers(editor.planes, main.layers, meta.width, meta.height)]
+    : [main]
+  const targetLayers = movers.flatMap(mover => mover.layers)
+  const holeCels = targetLayers.map(layer =>
+    editor.packPlane(frames.cel(page, layer), editor.planes[layer].slice()),
   )
   const scratch = new Uint32Array(grid.count)
   const rows = new Uint32Array(options.count * stride)
   const base = frames.copyRows(page, 1)
   const pixels = meta.width * meta.height
-  const working = targets.map(() => new Uint8Array(pixels))
+  const working = targetLayers.map(() => new Uint8Array(pixels))
 
   frames.clearRowSounds(base)
 
@@ -210,8 +249,14 @@ export async function buildMotion(
       else loadPlane(store, row[layer], working[order], grid, scratch)
     })
 
-    placeOnPath(floating, start, options, step)
-    floating.stamp(working, meta.width, meta.height)
+    for (const mover of movers) {
+      placeMover(mover, main.home, options, step)
+      mover.sprite.stamp(
+        mover.layers.map(layer => working[targetLayers.indexOf(layer)]),
+        meta.width,
+        meta.height,
+      )
+    }
 
     targetLayers.forEach((layer, order) => {
       row[layer] = editor.packPlane(row[layer], working[order])

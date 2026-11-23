@@ -776,8 +776,10 @@ class WarpTool implements Tool {
     editor: Editor,
     box: { left: number; top: number; right: number; bottom: number },
   ): void {
+    const hasCoverage = editor.note.profile.inkSlots === 0
+
     for (const plane of this.planes) {
-      this.field?.apply(editor.basePlane(plane), plane, box)
+      this.field?.resample(editor.basePlane(plane), plane, hasCoverage, box)
     }
 
     editor.surface.markRegion(box.left, box.top, box.right, box.bottom)

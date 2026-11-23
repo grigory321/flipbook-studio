@@ -10,7 +10,9 @@ export interface MotionPath {
 }
 
 const SMOOTH_PASSES = 24
-const HEADING_REACH = 6
+const HEADING_REACH = 12
+const TURN_REACH = 16
+const TURN_PASSES = 3
 
 function resample(points: readonly MotionPoint[]): [number, number][] {
   const result: [number, number][] = [[points[0][0], points[0][1]]]
@@ -63,6 +65,24 @@ function smooth(points: [number, number][]): void {
   }
 }
 
+function settleTurns(turns: Float32Array): void {
+  const count = turns.length
+  const sums = new Float64Array(count + 1)
+
+  for (let pass = 0; pass < TURN_PASSES; pass++) {
+    for (let index = 0; index < count; index++) {
+      sums[index + 1] = sums[index] + turns[index]
+    }
+
+    for (let index = 0; index < count; index++) {
+      const low = Math.max(0, index - TURN_REACH)
+      const high = Math.min(count - 1, index + TURN_REACH)
+
+      turns[index] = (sums[high + 1] - sums[low]) / (high - low + 1)
+    }
+  }
+}
+
 export function makeMotionPath(points: readonly MotionPoint[]): MotionPath {
   const even = resample(points)
 
@@ -86,8 +106,12 @@ export function makeMotionPath(points: readonly MotionPoint[]): MotionPath {
   })
 
   const headingAt = (index: number): number => {
-    const before = Math.max(0, index - HEADING_REACH)
-    const after = Math.min(count - 1, index + HEADING_REACH)
+    const span = Math.min(HEADING_REACH * 2, count - 1)
+    const before = Math.max(
+      0,
+      Math.min(index - HEADING_REACH, count - 1 - span),
+    )
+    const after = before + span
 
     return Math.atan2(ys[after] - ys[before], xs[after] - xs[before])
   }
@@ -106,7 +130,17 @@ export function makeMotionPath(points: readonly MotionPoint[]): MotionPath {
     turns[index] = unwrapped - first
   }
 
+  settleTurns(turns)
+
+  const settled = turns[0]
+
+  for (let index = 0; index < count; index++) turns[index] -= settled
+
   return { xs, ys, lengths, turns }
+}
+
+export function pathLength(path: MotionPath): number {
+  return path.lengths[path.lengths.length - 1]
 }
 
 export function motionAt(

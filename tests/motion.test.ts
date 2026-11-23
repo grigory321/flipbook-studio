@@ -26,7 +26,7 @@ test('変位場: 押すと絵が動き、ずれのない所はそのまま', () 
 
   assert.ok(box.right - box.left <= 26, '触った範囲だけ計算する')
 
-  field.apply(from, to)
+  field.resample(from, to, false)
 
   const row = [...to.subarray(20 * width, 21 * width)]
 
@@ -35,7 +35,7 @@ test('変位場: 押すと絵が動き、ずれのない所はそのまま', () 
   assert.equal(to[2 * width + 2], 1)
 })
 
-test('ゆらゆら差分: すぐあとへ足し、1 回で取り消せる', async () => {
+test('ゆらゆら差分: すぐあとへ足し、1 回で取り消せる', () => {
   const note = Note.create({ title: 't', profile: 'dsi' })
   const editor = new Editor(note)
   const pen = tool('pen')
@@ -45,9 +45,7 @@ test('ゆらゆら差分: すぐあとへ足し、1 回で取り消せる', asyn
   pen.up(editor, point(120, 90))
   note.frames.setSounds(0, 1)
 
-  assert.ok(
-    await insertWobble(editor, { count: 3, strength: 2, kind: 'whole' }),
-  )
+  assert.ok(insertWobble(editor, { count: 3, strength: 2, kind: 'whole' }))
   assert.equal(note.frames.count, 4)
   assert.equal(note.frames.sounds(1), 0, '効果音は写さない')
   assert.notEqual(note.frames.cel(1, 0), note.frames.cel(0, 0))
@@ -73,6 +71,24 @@ test('みちすじ: 道はなめらかで、両端は動かない', () => {
   }
 
   assert.deepEqual(motionAt(path, 0).slice(0, 2), [0, 0])
+})
+
+test('みちすじ: 手ぶれのある道でも向きは震えない', () => {
+  const shaky = Array.from({ length: 120 }, (_, index): [number, number] => [
+    index * 3,
+    100 + (index % 2 ? 1.5 : -1.5),
+  ])
+  const path = makeMotionPath(shaky)
+  let most = 0
+
+  for (let step = 1; step <= 40; step++) {
+    const [, , before] = motionAt(path, (step - 1) / 40)
+    const [, , after] = motionAt(path, step / 40)
+
+    most = Math.max(most, Math.abs(after - before))
+  }
+
+  assert.ok(most < 0.01, '少しずつしか回らない')
 })
 
 test('みちすじ: 回り続けても向きが飛ばない', () => {
@@ -112,6 +128,8 @@ test('みちすじ: ページを足すときは、もとのページを変えな
     follows: false,
     finalScale: 1,
     mode: 'add',
+    returns: false,
+    allLayers: false,
   })
 
   assert.ok(isDone)
@@ -124,6 +142,43 @@ test('みちすじ: ページを足すときは、もとのページを変えな
 
   editor.undo()
   assert.equal(note.frames.count, 1)
+})
+
+test('みちすじ: ぜんぶのレイヤーを選ぶと、ほかのレイヤーも一緒に動く', async () => {
+  const note = Note.create({ title: 't', profile: 'dsi' })
+  const editor = new Editor(note)
+  const { width } = note.meta
+
+  editor.beginEdit()
+  editor.planes[0][20 * width + 20] = 1
+  editor.planes[1][40 * width + 40] = 1
+  editor.commitEdit()
+
+  const before = note.frames.cel(0, 1)
+
+  editor.liftAll()
+
+  const isDone = await buildMotion(editor, {
+    path: makeMotionPath([
+      [20, 20],
+      [120, 20],
+    ]),
+    count: 4,
+    ease: 'none',
+    follows: false,
+    finalScale: 1,
+    mode: 'add',
+    returns: false,
+    allLayers: true,
+  })
+
+  assert.ok(isDone)
+  assert.equal(note.frames.cel(0, 1), before, 'もとのページは変わらない')
+
+  await editor.goTo(4)
+  assert.equal(editor.planes[0][20 * width + 120], 1)
+  assert.equal(editor.planes[1][40 * width + 140], 1)
+  assert.equal(editor.planes[1][40 * width + 40], 0)
 })
 
 test('まとめて操作: 並べ替えの順番', () => {

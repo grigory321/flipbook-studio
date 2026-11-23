@@ -242,10 +242,6 @@ export class Stage {
     return context
   }
 
-  get pictureCanvas(): HTMLCanvasElement {
-    return this.inkCanvas
-  }
-
   addOverlay(element: HTMLElement): void {
     this.element.appendChild(element)
   }

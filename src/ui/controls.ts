@@ -68,6 +68,18 @@ export function sliderRow(
   )
 }
 
+export function showSliderValue(
+  row: HTMLElement,
+  value: number,
+  format: (value: number) => string = String,
+): void {
+  const input = row.querySelector('input')
+  const output = row.querySelector('output')
+
+  if (input) input.value = String(value)
+  if (output) output.textContent = format(value)
+}
+
 export function settingSlider(
   label: string,
   signal: Signal<number>,

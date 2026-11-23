@@ -1282,7 +1282,7 @@ export function editorScene(
     if (!path) return
 
     editor.tracedPath.value = null
-    openPathDialog(editor, path, stage.pictureCanvas, () => selectTool('pen'))
+    openPathDialog(editor, path, () => selectTool('pen'))
   })
 
   const onCancel = (): void => {

@@ -4,6 +4,7 @@ import {
   makeMotionPath,
   type MotionEase,
   type MotionPoint,
+  pathLength,
 } from '../../app/motion.ts'
 import {
   applyRange,
@@ -12,8 +13,10 @@ import {
   sourcePlanes,
   wobbleVariants,
   type MotionMode,
+  liftLayers,
   type MotionOptions,
-  placeOnPath,
+  type Mover,
+  placeMover,
   type RangeAction,
   type WobbleKind,
 } from '../../app/series.ts'
@@ -21,13 +24,14 @@ import { t, type MessageKey } from '../../i18n/index.ts'
 import { fill, h, key, Scope } from '../dom.ts'
 import { openDialog, toast } from '../overlay.ts'
 import { playSfx } from '../sfx.ts'
-import { FloatPainter } from './float-paint.ts'
-import { sliderRow, toggleRow } from '../controls.ts'
+import { showSliderValue, sliderRow, toggleRow } from '../controls.ts'
 
-const PREVIEW_MS = 1000 / 10
 const SCALE_PERCENT = 100
 const ADD_PAGES_MAX = 60
 const ADD_PAGES_DEFAULT = 10
+const PATH_COUNT_MIN = 2
+const PATH_COUNT_MAX = 60
+const PATH_SPEED_MAX = 40
 const WOBBLE_COUNT_MAX = 24
 const WOBBLE_COUNT_DEFAULT = 5
 
@@ -130,18 +134,21 @@ const EASES: readonly (readonly [MotionEase, MessageKey])[] = [
 export function openPathDialog(
   editor: Editor,
   points: readonly MotionPoint[],
-  picture: HTMLCanvasElement,
   onDone: () => void,
 ): void {
   const floating = editor.floating.peek()
 
   if (!floating) return
 
-  const { meta } = editor.note
+  const { meta, frames } = editor.note
+  const { width, height } = meta
   const scope = new Scope()
   const sprite = floating.bake()
-  const start = sprite.center
-  const painter = new FloatPainter(editor)
+  const main: Mover = {
+    layers: editor.selectionLayers(),
+    sprite,
+    home: sprite.center,
+  }
   const options: MotionOptions = {
     path: makeMotionPath(points),
     count: 12,
@@ -149,33 +156,108 @@ export function openPathDialog(
     follows: false,
     finalScale: 1,
     mode: 'add',
+    returns: false,
+    allLayers: false,
   }
 
+  const distance = (): number =>
+    pathLength(options.path) * (options.returns ? 2 : 1)
+  const speedFor = (pages: number): number =>
+    Math.max(1, Math.min(PATH_SPEED_MAX, Math.round(distance() / pages)))
+  const pagesFor = (dots: number): number =>
+    Math.max(
+      PATH_COUNT_MIN,
+      Math.min(PATH_COUNT_MAX, Math.round(distance() / dots)),
+    )
+
+  let speed = speedFor(options.count)
+
+  const summary = h('p', { class: 'dialog-text' })
+  const countRow = sliderRow(
+    t('path.count'),
+    options.count,
+    { min: PATH_COUNT_MIN, max: PATH_COUNT_MAX },
+    value => {
+      speed = speedFor(value)
+      showSliderValue(speedRow, speed)
+      setCount(value)
+    },
+  )
+  const speedRow = sliderRow(
+    t('path.speed'),
+    speed,
+    { min: 1, max: PATH_SPEED_MAX },
+    value => {
+      speed = value
+      setCount(pagesFor(value))
+    },
+  )
+
+  const setCount = (value: number): void => {
+    options.count = value
+    showSliderValue(countRow, value)
+    summary.textContent = t('path.summary', {
+      n: value,
+      s: (value / editor.note.fps).toFixed(1),
+    })
+  }
+
+  setCount(options.count)
+
+  const compositor = new Compositor(editor.note)
+  const image = new ImageData(width, height)
+  const whole = { left: 0, top: 0, right: width - 1, bottom: height - 1 }
+  const page = editor.page.peek()
   const preview = h('canvas', {
     class: 'motion-preview',
-    width: meta.width,
-    height: meta.height,
+    width,
+    height,
     style: `background-color:${editor.paperColor()}`,
   })
   const context = preview.getContext('2d')
-  const sprites = h('canvas', { width: meta.width, height: meta.height })
-  const spriteContext = sprites.getContext('2d')
 
+  let movers = [main]
+  let still: readonly Uint8Array[] = editor.planes
   let step = 0
 
-  const showFrame = (): void => {
-    if (!context || !spriteContext) return
+  const chooseLayers = (isAll: boolean): void => {
+    options.allLayers = isAll
 
-    step = step >= options.count ? 0 : step + 1
-    placeOnPath(sprite, start, options, step)
-    context.clearRect(0, 0, meta.width, meta.height)
-    context.drawImage(picture, 0, 0)
-    spriteContext.clearRect(0, 0, meta.width, meta.height)
-    painter.paint(spriteContext, sprite)
-    context.drawImage(sprites, 0, 0)
+    if (!isAll) {
+      movers = [main]
+      still = editor.planes
+
+      return
+    }
+
+    const copies = editor.planes.map(plane => plane.slice())
+
+    movers = [main, ...liftLayers(copies, main.layers, width, height)]
+    still = copies
   }
 
-  const timer = window.setInterval(showFrame, PREVIEW_MS)
+  const showFrame = (): void => {
+    if (!context) return
+
+    step = step >= options.count ? 0 : step + 1
+
+    const planes = still.map(plane => plane.slice())
+
+    for (const mover of movers) {
+      placeMover(mover, main.home, options, step)
+      mover.sprite.stamp(
+        mover.layers.map(layer => planes[layer]),
+        width,
+        height,
+      )
+    }
+
+    compositor.composeRegion(page, planes, whole)
+    image.data.set(new Uint8ClampedArray(compositor.pixels.buffer))
+    context.putImageData(image, 0, 0)
+  }
+
+  const timer = window.setInterval(showFrame, 1000 / editor.note.fps)
 
   scope.add(() => clearInterval(timer))
   showFrame()
@@ -195,6 +277,9 @@ export function openPathDialog(
     onDone()
   }
 
+  const canChooseLayers =
+    frames.layers > 1 && main.layers.length < frames.layers
+
   const dialog = openDialog({
     title: t('tool.path'),
     icon: 'path',
@@ -202,6 +287,17 @@ export function openPathDialog(
     onClose: () => scope.dispose(),
     body: [
       preview,
+      canChooseLayers
+        ? chipRow<'one' | 'all'>(
+            t('path.layers'),
+            [
+              ['one', t('path.layersOne')],
+              ['all', t('path.layersAll')],
+            ],
+            'one',
+            value => chooseLayers(value === 'all'),
+          )
+        : null,
       chipRow<MotionMode>(
         t('path.mode'),
         [
@@ -213,8 +309,12 @@ export function openPathDialog(
           options.mode = value
         },
       ),
-      sliderRow(t('path.count'), options.count, { min: 2, max: 30 }, value => {
-        options.count = value
+      speedRow,
+      countRow,
+      summary,
+      toggleRow(t('path.returns'), options.returns, value => {
+        options.returns = value
+        setCount(pagesFor(speed))
       }),
       chipRow<MotionEase>(
         t('path.ease'),

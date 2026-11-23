@@ -18,6 +18,53 @@ export interface WarpBox {
   bottom: number
 }
 
+function sampleSmooth(
+  from: Uint8Array,
+  width: number,
+  height: number,
+  sourceX: number,
+  sourceY: number,
+  hasCoverage: boolean,
+): number {
+  const left = Math.floor(sourceX)
+  const top = Math.floor(sourceY)
+  const blendX = sourceX - left
+  const blendY = sourceY - top
+  let total = 0
+  let strongest = 0
+  let value = 0
+
+  for (let corner = 0; corner < 4; corner++) {
+    const column = left + (corner & 1)
+    const row = top + (corner >> 1)
+
+    if (column < 0 || row < 0 || column >= width || row >= height) continue
+
+    const sample = from[row * width + column]
+
+    if (sample === 0) continue
+
+    const weight =
+      (corner & 1 ? blendX : 1 - blendX) * (corner >> 1 ? blendY : 1 - blendY)
+    const share =
+      weight *
+      (sample === KNOCKOUT_VALUE ? COVERAGE_FULL : valueCoverage(sample))
+
+    total += share
+
+    if (share > strongest) {
+      strongest = share
+      value = sample
+    }
+  }
+
+  if (!hasCoverage || value === KNOCKOUT_VALUE) {
+    return total * 2 >= COVERAGE_FULL ? value : 0
+  }
+
+  return coveredValue(valueInk(value), Math.round(total))
+}
+
 function falloff(ratio: number): number {
   const inverse = 1 - ratio
 
@@ -150,7 +197,12 @@ export class WarpField {
     }
   }
 
-  apply(from: Uint8Array, to: Uint8Array, box?: WarpBox): void {
+  resample(
+    from: Uint8Array,
+    to: Uint8Array,
+    hasCoverage: boolean,
+    box?: WarpBox,
+  ): void {
     const { width, height } = this
     const left = box?.left ?? 0
     const top = box?.top ?? 0
@@ -160,64 +212,17 @@ export class WarpField {
     for (let y = top; y <= bottom; y++) {
       for (let x = left; x <= right; x++) {
         const index = y * width + x
-        const sourceX = Math.round(x - this.offsetX[index] / UNIT)
-        const sourceY = Math.round(y - this.offsetY[index] / UNIT)
-        const isInside =
-          sourceX >= 0 && sourceY >= 0 && sourceX < width && sourceY < height
-
-        to[index] = isInside ? from[sourceY * width + sourceX] : 0
-      }
-    }
-  }
-
-  resample(from: Uint8Array, to: Uint8Array, hasCoverage: boolean): void {
-    const { width, height } = this
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const index = y * width + x
         const sourceX = x - this.offsetX[index] / UNIT
         const sourceY = y - this.offsetY[index] / UNIT
-        const left = Math.floor(sourceX)
-        const top = Math.floor(sourceY)
-        const blendX = sourceX - left
-        const blendY = sourceY - top
-        let total = 0
-        let strongest = 0
-        let value = 0
 
-        for (let corner = 0; corner < 4; corner++) {
-          const column = left + (corner & 1)
-          const row = top + (corner >> 1)
-
-          if (column < 0 || row < 0 || column >= width || row >= height) {
-            continue
-          }
-
-          const sample = from[row * width + column]
-
-          if (sample === 0) continue
-
-          const weight =
-            (corner & 1 ? blendX : 1 - blendX) *
-            (corner >> 1 ? blendY : 1 - blendY)
-          const share =
-            weight *
-            (sample === KNOCKOUT_VALUE ? COVERAGE_FULL : valueCoverage(sample))
-
-          total += share
-
-          if (share > strongest) {
-            strongest = share
-            value = sample
-          }
-        }
-
-        if (!hasCoverage || value === KNOCKOUT_VALUE) {
-          to[index] = total * 2 >= COVERAGE_FULL ? value : 0
-        } else {
-          to[index] = coveredValue(valueInk(value), Math.round(total))
-        }
+        to[index] = sampleSmooth(
+          from,
+          width,
+          height,
+          sourceX,
+          sourceY,
+          hasCoverage,
+        )
       }
     }
   }
