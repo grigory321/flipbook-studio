@@ -326,6 +326,8 @@ export const es = {
   'sound.mute': 'Silenciar',
 
   'plugin.tonesDetail': 'Añade 8 tramas al estilo Flipnote',
+  'plugin.ugomemoPensDetail':
+    'Añade 16 lápices que dibujan igual que Flipnote Studio',
 
   'pattern.solid': 'Sólido',
   'pattern.tone': 'Tono',
@@ -353,6 +355,7 @@ export const es = {
   'sound.tapToPick': 'Toca para elegir un sonido',
   'tips.ok': 'Entendido',
   'pen.boxArt': 'Arte',
+  'pen.boxUgomemo': 'Flipnote',
   'pen.marker': 'Rotulador',
   'pen.chalk': 'Tiza',
   'pen.nib': 'Plumilla',

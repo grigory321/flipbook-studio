@@ -1,5 +1,6 @@
 import { exportInBackground, readNoteFileHere } from '../app/background.ts'
 import { restoreMyLibrary } from '../app/my-library.ts'
+import { DSI_PENS } from '../app/pens.ts'
 import { builtinTools } from '../app/tools.ts'
 import { SOUND_PRESETS } from '../audio/presets.ts'
 import { DEVICE_PATTERNS, patternFromRows } from '../core/patterns.ts'
@@ -130,6 +131,25 @@ export const CORE_PLUGIN: PluginDefinition = {
 
     for (const exporter of exporters) api.exporters.register(exporter)
     for (const importer of CORE_IMPORTERS) api.importers.register(importer)
+  },
+}
+
+export const UGOMEMO_PEN_PLUGIN: PluginDefinition = {
+  id: 'core.ugomemo-pens',
+  name: 'うごメモのペン',
+  version: '1.0.0',
+  description: 'plugin.ugomemoPensDetail',
+
+  setup(api) {
+    api.penPacks.register({
+      id: 'ugomemo',
+      nameKey: 'pen.boxUgomemo',
+      profiles: ['free'],
+      pens: DSI_PENS.map(spec => ({
+        ...spec,
+        id: spec.id.replace('dsi.', 'ugomemo.'),
+      })),
+    })
   },
 }
 

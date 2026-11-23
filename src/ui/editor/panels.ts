@@ -53,6 +53,12 @@ function boxOf(spec: PenSpec): PenBox {
   return spec.isPro ? 'pro' : 'basic'
 }
 
+interface PenGroup {
+  key: string
+  label: string
+  pens: PenSpec[]
+}
+
 const SELECT_MODES: readonly (readonly [SelectMode, string])[] = [
   ['rect', 'select'],
   ['lasso', 'lasso'],
@@ -134,7 +140,7 @@ export class PenPanel {
 
   private readonly editor: Editor
   private readonly scope = new Scope()
-  private readonly box = new Signal<PenBox>('basic')
+  private readonly box = new Signal<string>('basic')
 
   constructor(editor: Editor) {
     this.editor = editor
@@ -162,6 +168,7 @@ export class PenPanel {
       editor.inksVersion.value
       editor.settingsVersion.value
       registries.patterns.version.value
+      registries.penPacks.version.value
       settings.myShapes.value
       editor.isTracingShape.value
       this.box.value
@@ -412,42 +419,68 @@ export class PenPanel {
     return h('p', { class: 'panel-hint' }, t(message))
   }
 
-  private boxTabs(boxes: readonly PenBox[]): HTMLElement {
-    const current = this.box.peek()
-
+  private boxTabs(groups: readonly PenGroup[], current: string): HTMLElement {
     return h(
       'div',
       { class: 'box-tabs' },
-      boxes.map(box =>
+      groups.map(group =>
         h(
           'button',
           {
             class: 'chip',
             type: 'button',
             'data-nav': true,
-            'aria-pressed': String(box === current),
+            'aria-pressed': String(group.key === current),
             onClick: () => {
-              this.box.value = box
+              this.box.value = group.key
             },
           },
-          t(BOX_LABELS[box]),
+          group.label,
         ),
       ),
     )
   }
 
+  private penGroups(): PenGroup[] {
+    const profile = this.editor.note.profile.id
+    const groups = new Map<string, PenGroup>()
+
+    for (const spec of PEN_SETS[profile]) {
+      const key = boxOf(spec)
+      const group = groups.get(key) ?? {
+        key,
+        label: t(BOX_LABELS[key]),
+        pens: [],
+      }
+
+      group.pens.push(spec)
+      groups.set(key, group)
+    }
+
+    for (const pack of registries.penPacks.list()) {
+      if (!pack.profiles.includes(profile)) continue
+
+      groups.set(pack.id, {
+        key: pack.id,
+        label: pack.nameKey ? t(pack.nameKey) : (pack.name ?? pack.id),
+        pens: [...pack.pens],
+      })
+    }
+
+    return [...groups.values()]
+  }
+
   private penTips(): HTMLElement {
     const editor = this.editor
-    const set = PEN_SETS[editor.note.profile.id]
+    const groups = this.penGroups()
     const selectedId = editor.penId.peek()
-    const box = this.box.peek()
-    const boxes = [...new Set(set.map(boxOf))]
-    const visible = set.filter(spec => boxOf(spec) === box)
+    const group = groups.find(item => item.key === this.box.peek()) ?? groups[0]
+    const visible = group?.pens ?? []
     const size = editor.size.peek()
 
     return section(
       'pen.tips',
-      boxes.length > 1 ? this.boxTabs(boxes) : null,
+      groups.length > 1 ? this.boxTabs(groups, group?.key ?? '') : null,
       h(
         'div',
         { class: 'pen-grid' },

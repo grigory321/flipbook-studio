@@ -321,6 +321,7 @@ export const ja = {
   'sound.mute': '音を消す',
 
   'plugin.tonesDetail': 'うごメモのもようを 8 種類ふやします',
+  'plugin.ugomemoPensDetail': 'ペン先にうごメモと同じペンを 16 種類ふやします',
 
   'pattern.solid': 'ベタ',
   'pattern.tone': 'あみ',
@@ -348,6 +349,7 @@ export const ja = {
   'sound.tapToPick': 'タップして音を選ぶ',
   'tips.ok': 'わかった',
   'pen.boxArt': 'がざい',
+  'pen.boxUgomemo': 'うごメモ',
   'pen.marker': 'マーカー',
   'pen.chalk': 'チョーク',
   'pen.nib': 'つけペン',

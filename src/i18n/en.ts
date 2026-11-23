@@ -325,6 +325,8 @@ export const en = {
   'sound.mute': 'Mute',
 
   'plugin.tonesDetail': 'Adds 8 more Flipnote-style patterns',
+  'plugin.ugomemoPensDetail':
+    'Adds 16 pens that draw just like Flipnote Studio',
 
   'pattern.solid': 'Solid',
   'pattern.tone': 'Tone',
@@ -352,6 +354,7 @@ export const en = {
   'sound.tapToPick': 'Tap to choose a sound',
   'tips.ok': 'Got it',
   'pen.boxArt': 'Art',
+  'pen.boxUgomemo': 'Flipnote',
   'pen.marker': 'Marker',
   'pen.chalk': 'Chalk',
   'pen.nib': 'Nib pen',

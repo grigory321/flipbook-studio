@@ -82,7 +82,7 @@ const ART_PENS: readonly PenSpec[] = ART_STYLES.map(style => ({
   isArt: true,
 }))
 
-const DSI_PENS: readonly PenSpec[] = [
+export const DSI_PENS: readonly PenSpec[] = [
   dsiPen('pen1', 'pen.pen', DsiBrush.line, 1),
   dsiPen('pen2', 'pen.pen', DsiBrush.pen2, 2),
   dsiPen('pen3', 'pen.pen', DsiBrush.square3, 3),

@@ -327,6 +327,8 @@ export const ru = {
   'sound.mute': 'Выключить звук',
 
   'plugin.tonesDetail': 'Ещё 8 узоров в стиле Flipnote',
+  'plugin.ugomemoPensDetail':
+    'Добавляет 16 перьев, рисующих как во Flipnote Studio',
 
   'pattern.solid': 'Сплошной',
   'pattern.tone': 'Тон',
@@ -354,6 +356,7 @@ export const ru = {
   'sound.tapToPick': 'Нажмите, чтобы выбрать звук',
   'tips.ok': 'Понятно',
   'pen.boxArt': 'Арт',
+  'pen.boxUgomemo': 'Flipnote',
   'pen.marker': 'Маркер',
   'pen.chalk': 'Мел',
   'pen.nib': 'Перо',

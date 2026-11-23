@@ -1,9 +1,11 @@
 import type { Note } from '../core/note.ts'
+import type { ProfileId } from '../core/profile.ts'
 import type { Pattern } from '../core/patterns.ts'
 import { Signal } from '../core/signal.ts'
 import type { Store } from '../core/store.ts'
 import type { SoundPreset } from '../audio/presets.ts'
 import type { Editor } from '../app/editor.ts'
+import type { PenSpec } from '../app/pens.ts'
 import type { Tool } from '../app/tools.ts'
 import type { Saved } from '../worker/protocol.ts'
 
@@ -60,6 +62,14 @@ export interface Panel {
   render(container: HTMLElement, editor: Editor): void | (() => void)
 }
 
+export interface PenPack {
+  readonly id: string
+  readonly nameKey?: string
+  readonly name?: string
+  readonly profiles: readonly ProfileId[]
+  readonly pens: readonly PenSpec[]
+}
+
 interface Identified {
   readonly id: string
 }
@@ -96,6 +106,7 @@ export const registries = {
   importers: new Registry<Importer>(),
   commands: new Registry<Command>(),
   panels: new Registry<Panel>(),
+  penPacks: new Registry<PenPack>(),
 }
 
 export type HostEvent = 'note-open' | 'note-close' | 'page-change'
@@ -108,6 +119,7 @@ export interface PluginApi {
   readonly importers: { register(importer: Importer): void }
   readonly commands: { register(command: Command): void }
   readonly panels: { register(panel: Panel): void }
+  readonly penPacks: { register(pack: PenPack): void }
   editor(): Editor | null
   toast(message: string): void
   readData(): unknown
@@ -224,6 +236,7 @@ export class PluginHost {
       importers: registrar(registries.importers),
       commands: registrar(registries.commands),
       panels: registrar(registries.panels),
+      penPacks: registrar(registries.penPacks),
       editor: () => this.bridge.editor(),
       toast: message => this.bridge.toast(message),
       readData: () => this.bridge.editor()?.note.meta.plugins[id],

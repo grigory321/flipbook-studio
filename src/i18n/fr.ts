@@ -326,6 +326,8 @@ export const fr = {
   'sound.mute': 'Couper le son',
 
   'plugin.tonesDetail': 'Ajoute 8 motifs façon Flipnote',
+  'plugin.ugomemoPensDetail':
+    'Ajoute 16 stylos qui dessinent comme Flipnote Studio',
 
   'pattern.solid': 'Plein',
   'pattern.tone': 'Trame',
@@ -353,6 +355,7 @@ export const fr = {
   'sound.tapToPick': 'Touchez pour choisir un son',
   'tips.ok': 'Compris',
   'pen.boxArt': 'Art',
+  'pen.boxUgomemo': 'Flipnote',
   'pen.marker': 'Marqueur',
   'pen.chalk': 'Craie',
   'pen.nib': 'Plume',

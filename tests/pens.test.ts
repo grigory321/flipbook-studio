@@ -12,6 +12,8 @@ import {
 } from '../src/core/ink.ts'
 import { Note } from '../src/core/note.ts'
 import { Surface } from '../src/core/surface.ts'
+import { UGOMEMO_PEN_PLUGIN } from '../src/plugin/core-plugins.ts'
+import { PluginHost } from '../src/plugin/host.ts'
 import { EdgeTracer } from '../src/draw/edge.ts'
 import { FreePen, type FreeStyle } from '../src/draw/pen-free.ts'
 import { point, tool, inkOf } from './helpers.ts'
@@ -361,4 +363,32 @@ test('ペン: 縁は描いている途中から付き、線との間にすき間
     valueCoverage(values[lastBody]) * 2 >= 16,
     '線の外側に薄い点が残らない',
   )
+})
+
+test('うごメモのペン: ふつうのノートで選べて、くっきりした点で描け、外すと消える', () => {
+  const host = new PluginHost()
+
+  host.define(UGOMEMO_PEN_PLUGIN)
+
+  const note = Note.create({ title: 't', profile: 'free' })
+  const editor = new Editor(note)
+  const pen = tool('pen')
+
+  assert.ok(editor.penChoices().some(spec => spec.id === 'ugomemo.pen3'))
+
+  editor.penId.value = 'ugomemo.pen3'
+  assert.equal(editor.currentPen().engine, 'dsi')
+
+  pen.down(editor, point(40, 40))
+  for (let x = 42; x <= 120; x += 2) pen.move(editor, point(x, 40 + x / 4, x))
+  pen.up(editor, point(120, 70, 200))
+
+  const plane = editor.planes[0]
+
+  assert.ok(inkOf(plane) > 100)
+  assert.ok(plane.every(value => value === 0 || valueCoverage(value) === 16))
+
+  host.disable(UGOMEMO_PEN_PLUGIN.id)
+  assert.ok(!editor.penChoices().some(spec => spec.id === 'ugomemo.pen3'))
+  assert.equal(editor.currentPen().engine, 'free')
 })

@@ -9,6 +9,7 @@ import { PluginHost, registries } from '../plugin/host.ts'
 import {
   CORE_IMPORTERS,
   CORE_PLUGIN,
+  UGOMEMO_PEN_PLUGIN,
   TONE_PLUGIN,
 } from '../plugin/core-plugins.ts'
 import type { Saved } from '../worker/protocol.ts'
@@ -58,6 +59,7 @@ export class Session {
 
     this.host.define(CORE_PLUGIN)
     this.host.define(TONE_PLUGIN)
+    this.host.define(UGOMEMO_PEN_PLUGIN)
     await this.library?.purgeTrash()
   }
 

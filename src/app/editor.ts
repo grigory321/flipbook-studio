@@ -25,6 +25,7 @@ import { Signal } from '../core/signal.ts'
 import { EMPTY_REF } from '../core/store.ts'
 import { Surface } from '../core/surface.ts'
 import { ERASER_SETS, PAINT_SETS, PEN_SETS, type PenSpec } from './pens.ts'
+import { registries } from '../plugin/host.ts'
 import { settings } from './settings.ts'
 import type { ShapeKind } from '../draw/shapes.ts'
 import { fullMask } from '../draw/mask.ts'
@@ -263,8 +264,22 @@ export class Editor {
     }
   }
 
+  penChoices(): PenSpec[] {
+    const profile = this.note.profile.id
+    const packs = registries.penPacks
+      .list()
+      .filter(pack => pack.profiles.includes(profile))
+
+    return [...PEN_SETS[profile], ...packs.flatMap(pack => pack.pens)]
+  }
+
   currentPen(): PenSpec {
-    return this.findPen(PEN_SETS, this.penId.peek())
+    const id = this.penId.peek()
+
+    return (
+      this.penChoices().find(spec => spec.id === id) ??
+      this.findPen(PEN_SETS, id)
+    )
   }
 
   currentEraser(): PenSpec {
