@@ -18,7 +18,7 @@ export interface WarpBox {
   bottom: number
 }
 
-function sampleSmooth(
+export function sampleSmooth(
   from: Uint8Array,
   width: number,
   height: number,

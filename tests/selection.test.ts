@@ -224,3 +224,38 @@ test('浮いている絵: 抜きの点は下の絵を消す', () => {
 
   assert.deepEqual([...plane], [0, 1, 1, 1])
 })
+
+test('変形: 回すと縁がなめらかになり、そのままなら 1 ピクセルも変わらない', () => {
+  const note = Note.create({ title: 't', profile: 'free' })
+  const editor = new Editor(note)
+  const { width, height } = note.meta
+  const plane = editor.planes[0]
+
+  for (let x = 40; x < 120; x++) {
+    for (let y = 60; y < 63; y++) plane[y * width + x] = 1
+  }
+
+  const before = plane.slice()
+
+  editor.beginEdit()
+  assert.ok(editor.lift(rectMask(width, height, 30, 50, 130, 70)))
+
+  const floating = editor.floating.peek()
+
+  assert.ok(floating)
+
+  const [centerX, centerY] = floating.center
+  const still = new Uint8Array(plane.length)
+
+  floating.stamp([still], width, height)
+  assert.deepEqual([...still], [...before])
+
+  const turned = new Uint8Array(plane.length)
+
+  floating.place(centerX, centerY, 1, 0.3)
+  floating.stamp([turned], width, height)
+  assert.ok(
+    turned.some(value => value > 15),
+    '回した線の縁は中間の濃さになる',
+  )
+})

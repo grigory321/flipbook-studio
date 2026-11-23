@@ -1,4 +1,5 @@
 import { KNOCKOUT_VALUE } from '../core/ink.ts'
+import { sampleSmooth } from '../draw/warp.ts'
 
 export type FloatHandle =
   'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'rotate'
@@ -41,6 +42,7 @@ export class Floating {
   readonly sourceHeight: number
   readonly pixels: Uint8Array
   readonly isLayered: boolean
+  isSmooth = false
   retouch: (() => void) | null = null
 
   private readonly homeX: number
@@ -310,6 +312,18 @@ export class Floating {
 
   sample(x: number, y: number): number {
     const [u, v] = this.toSource(x, y)
+
+    if (this.isSmooth) {
+      return sampleSmooth(
+        this.pixels,
+        this.sourceWidth,
+        this.sourceHeight,
+        u - 0.5,
+        v - 0.5,
+        true,
+      )
+    }
+
     const column = Math.floor(u)
     const row = Math.floor(v)
 
@@ -389,7 +403,7 @@ export class Floating {
       }
     }
 
-    return new Floating(
+    const baked = new Floating(
       pixels,
       width,
       height,
@@ -397,6 +411,10 @@ export class Floating {
       top + height / 2,
       this.isLayered,
     )
+
+    baked.isSmooth = this.isSmooth
+
+    return baked
   }
 
   stamp(planes: readonly Uint8Array[], width: number, height: number): void {

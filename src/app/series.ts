@@ -224,6 +224,9 @@ export async function buildMotion(
   const movers = options.allLayers
     ? [main, ...liftLayers(editor.planes, main.layers, meta.width, meta.height)]
     : [main]
+
+  for (const mover of movers) mover.sprite.isSmooth = sprite.isSmooth
+
   const targetLayers = movers.flatMap(mover => mover.layers)
   const holeCels = targetLayers.map(layer =>
     editor.packPlane(frames.cel(page, layer), editor.planes[layer].slice()),

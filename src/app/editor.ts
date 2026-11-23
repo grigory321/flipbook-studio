@@ -675,7 +675,7 @@ export class Editor {
     if (!floating) return false
 
     this.markFloating(floating)
-    this.floating.value = floating
+    this.floating.value = this.adopt(floating)
     this.notifyPicture()
 
     return true
@@ -714,10 +714,16 @@ export class Editor {
     if (!floating) return false
 
     this.markFloating(floating)
-    this.floating.value = floating
+    this.floating.value = this.adopt(floating)
     this.notifyPicture()
 
     return true
+  }
+
+  private adopt(floating: Floating): Floating {
+    floating.isSmooth = this.note.profile.inkSlots === 0
+
+    return floating
   }
 
   private markFloating(floating: Floating): void {
@@ -791,7 +797,7 @@ export class Editor {
 
     if (!this.beginEdit()) return false
 
-    this.floating.value = floating
+    this.floating.value = this.adopt(floating)
     this.toolId.value = 'select'
     this.touchFloating()
 
