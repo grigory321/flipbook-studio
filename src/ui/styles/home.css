@@ -234,6 +234,9 @@
 }
 
 .card {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
   --sheet: #fffaf2;
   --fold: var(--cover);
   position: relative;
@@ -480,6 +483,16 @@
   .shelf-grid:not(.is-list) {
     grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
     gap: 10px 8px;
+  }
+}
+
+@media (max-width: 559px) and (orientation: portrait) {
+  .home-screens {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .screen-preview {
+    display: none;
   }
 }
 

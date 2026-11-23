@@ -27,6 +27,9 @@ import { openAppSettings } from './settings-dialog.ts'
 const PREVIEW_DELAY_MS = 160
 const PREVIEW_BUDGET = 32 * 1024 * 1024
 const FILE_TYPES = '.ugb,.ppm,.kwz'
+const SHELF_ONLY_QUERY = '(max-width: 559px) and (orientation: portrait)'
+const HOLD_MS = 500
+const HOLD_SLIP = 10
 
 class Preview {
   readonly canvas = h('canvas', { class: 'preview-canvas' })
@@ -209,6 +212,8 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
   let cards: NoteCard[] = []
   let selected: NoteCard | null = null
   let armedId: string | null = null
+  let heldId: string | null = null
+  const shelfOnly = matchMedia(SHELF_ONLY_QUERY)
   let newButton: HTMLButtonElement | null = null
 
   const open = async (card: NoteCard): Promise<void> => {
@@ -250,7 +255,7 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
       )
     }
 
-    preview.show(card)
+    if (!shelfOnly.matches) preview.show(card)
     renderInfoActions(card)
   }
 
@@ -386,6 +391,70 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
     })
   }
 
+  const cardAt = (event: Event): [NoteCard, HTMLElement] | null => {
+    const element =
+      event.target instanceof Element ? event.target.closest('.card') : null
+    const card = cards.find(
+      item => item.id === element?.getAttribute('data-id'),
+    )
+
+    return card && element instanceof HTMLElement ? [card, element] : null
+  }
+
+  const showHeldMenu = (card: NoteCard, element: HTMLElement): void => {
+    heldId = card.id
+    select(card)
+    showCardMenu(card, element)
+  }
+
+  let holdTimer = 0
+  let holdX = 0
+  let holdY = 0
+
+  const stopHold = (): void => {
+    clearTimeout(holdTimer)
+    holdTimer = 0
+  }
+
+  grid.addEventListener('pointerdown', event => {
+    const found = cardAt(event)
+
+    stopHold()
+    heldId = null
+
+    if (!found || event.button !== 0) return
+
+    holdX = event.clientX
+    holdY = event.clientY
+    holdTimer = window.setTimeout(() => showHeldMenu(...found), HOLD_MS)
+  })
+  grid.addEventListener('pointermove', event => {
+    if (Math.hypot(event.clientX - holdX, event.clientY - holdY) > HOLD_SLIP) {
+      stopHold()
+    }
+  })
+
+  for (const type of ['pointerup', 'pointercancel', 'scroll'] as const) {
+    grid.addEventListener(type, stopHold)
+  }
+
+  grid.addEventListener('contextmenu', event => {
+    const found = cardAt(event)
+
+    if (!found) return
+
+    event.preventDefault()
+    stopHold()
+    showHeldMenu(...found)
+  })
+
+  const onShelfChange = (): void => {
+    if (!shelfOnly.matches && selected) preview.show(selected)
+  }
+
+  shelfOnly.addEventListener('change', onShelfChange)
+  scope.add(() => shelfOnly.removeEventListener('change', onShelfChange))
+
   const renderGrid = (): void => {
     const now = Date.now()
 
@@ -407,8 +476,15 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
             onClick: (event: MouseEvent) => {
               const isKeyPress = event.detail === 0
 
+              if (heldId === card.id) {
+                heldId = null
+
+                return
+              }
+
               if (
                 armedId === card.id ||
+                (shelfOnly.matches && !isKeyPress) ||
                 (isKeyPress && selected?.id === card.id)
               ) {
                 void open(card)
@@ -614,10 +690,16 @@ export function homeScene(app: App, openEditor: (note: Note) => void): Scene {
       { button: 'confirm', label: t('guide.select') },
       { button: 'cancel', label: t('guide.back') },
     ],
-    touchGuide: () => [
-      { fingers: 1, label: t('guide.tapSelect') },
-      { fingers: 0, label: t('guide.tapAgain') },
-    ],
+    touchGuide: () =>
+      shelfOnly.matches
+        ? [
+            { fingers: 1, label: t('guide.tapOpen') },
+            { fingers: 0, label: t('guide.holdMenu') },
+          ]
+        : [
+            { fingers: 1, label: t('guide.tapSelect') },
+            { fingers: 0, label: t('guide.tapAgain') },
+          ],
     dispose: () => scope.dispose(),
   }
 }

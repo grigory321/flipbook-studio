@@ -309,6 +309,8 @@ export const es = {
   'guide.redo': 'Rehacer',
   'guide.tapSelect': 'Toca para elegir',
   'guide.tapAgain': 'Toca otra vez para abrir',
+  'guide.tapOpen': 'Toca para abrir',
+  'guide.holdMenu': 'Mantén pulsado para el menú',
   'gesture.title': 'Gestos táctiles',
   'gesture.undo': 'Toca con dos dedos para deshacer',
   'gesture.redo': 'Toca con tres dedos para rehacer',

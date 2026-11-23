@@ -37,6 +37,7 @@ const ONION_BEFORE = 0x3e8be8
 const ONION_AFTER = 0xa87fff
 const ONION_ALPHA = 0x80
 const FIT_MARGIN = 28
+const HEAD_WIDTH = 440
 const BINDING_ROOM = 8
 const PAN_KEEP = 56
 const FLIP_MIN_INTERVAL_MS = 90
@@ -906,6 +907,10 @@ export class Stage {
     const snapped = scale >= 1 ? Math.floor(scale * 4) / 4 : scale
 
     this.zoom.value = Math.max(ZOOM_MIN, snapped)
+    this.holder.style.setProperty(
+      '--head-scale',
+      String(Math.min(1, (width * this.zoom.peek()) / HEAD_WIDTH)),
+    )
     this.panX = 0
     this.panY = 0
     this.isFitted.value = true

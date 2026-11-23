@@ -304,6 +304,8 @@ export const ja = {
   'guide.redo': 'タップでやりなおす',
   'guide.tapSelect': 'タップでえらぶ',
   'guide.tapAgain': 'もう一度タップでひらく',
+  'guide.tapOpen': 'タップでひらく',
+  'guide.holdMenu': '長押しでメニュー',
   'gesture.title': '指の操作',
   'gesture.undo': '2 本指でタップすると、1 つもどす',
   'gesture.redo': '3 本指でタップすると、やりなおす',

@@ -310,6 +310,8 @@ export const ru = {
   'guide.redo': 'Повтор',
   'guide.tapSelect': 'Выбрать',
   'guide.tapAgain': 'Открыть',
+  'guide.tapOpen': 'Нажмите, чтобы открыть',
+  'guide.holdMenu': 'Удерживайте для меню',
   'gesture.title': 'Жесты',
   'gesture.undo': 'Нажми двумя пальцами, чтобы отменить',
   'gesture.redo': 'Нажми тремя пальцами, чтобы повторить',

@@ -308,6 +308,8 @@ export const en = {
   'guide.redo': 'Redo',
   'guide.tapSelect': 'Tap to select',
   'guide.tapAgain': 'Tap again to open',
+  'guide.tapOpen': 'Tap to open',
+  'guide.holdMenu': 'Hold for menu',
   'gesture.title': 'Touch gestures',
   'gesture.undo': 'Two-finger tap to undo',
   'gesture.redo': 'Three-finger tap to redo',

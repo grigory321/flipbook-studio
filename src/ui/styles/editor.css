@@ -207,7 +207,10 @@
 
 .page-holder {
   --u: calc(1px / var(--zoom, 1));
-  --hu: min(var(--u), calc(var(--page-width) / 440));
+  --hu: min(
+    calc(var(--u) * var(--head-scale, 1)),
+    calc(var(--page-width) / 440)
+  );
   --card-radius: calc(var(--hu) * 20);
   --head-height: calc(var(--hu) * 34);
   position: absolute;
@@ -1061,6 +1064,7 @@
 
 .strip {
   --strip-height: 86px;
+  --cell-pad: 14px 4px;
   --lane: 24px;
   --gutter: 42px;
   --film: #211d1a;
@@ -1145,20 +1149,18 @@
   top: 0;
   width: var(--cell);
   height: var(--strip-height);
-  padding: 14px 4px;
+  padding: var(--cell-pad);
   border: 0;
   background: none;
 }
 
 .strip-cell {
-  display: flex;
   touch-action: pan-x;
 }
 
 .strip-sheet {
-  position: relative;
-  flex: 1;
-  min-width: 0;
+  position: absolute;
+  inset: var(--cell-pad);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1592,6 +1594,16 @@
   transform: translateY(102%);
 }
 
+:where(.is-phone) .ed-side {
+  background-color: var(--paper);
+  backdrop-filter: none;
+}
+
+:where(.is-phone) .side-tab {
+  background: #fff;
+  backdrop-filter: none;
+}
+
 :where(.is-phone) .ed-side.is-open,
 .editor[data-hand='left']:where(.is-phone) .ed-side.is-open {
   transform: translateY(0);
@@ -1687,11 +1699,7 @@
   .strip {
     --strip-height: 70px;
     --gutter: 32px;
-  }
-
-  .strip-cell,
-  .strip-add {
-    padding: 13px 3px;
+    --cell-pad: 13px 3px;
   }
 
   .float-bar {

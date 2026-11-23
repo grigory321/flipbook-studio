@@ -309,6 +309,8 @@ export const fr = {
   'guide.redo': 'Rétablir',
   'guide.tapSelect': 'Touche pour choisir',
   'guide.tapAgain': 'Touche encore pour ouvrir',
+  'guide.tapOpen': 'Touchez pour ouvrir',
+  'guide.holdMenu': 'Appui long pour le menu',
   'gesture.title': 'Gestes tactiles',
   'gesture.undo': 'Touche à deux doigts pour annuler',
   'gesture.redo': 'Touche à trois doigts pour rétablir',
