@@ -119,7 +119,7 @@ export function editorScene(
   const isPhone = (): boolean => phoneQuery.matches
   const isOneBar = (): boolean => oneBarQuery.matches
   const isSheet = (): boolean =>
-    sheetQuery.matches || settings.panelFolded.peek()
+    sheetQuery.matches || !settings.panelPinned.peek()
 
   const compactView = matchMedia(STRIP_CLOSED_QUERY)
   const stripShown = new Signal(!compactView.matches)
@@ -476,7 +476,7 @@ export function editorScene(
     icon: 'sidebar',
     title: t('panel.fold'),
     class: 'top-panel',
-    onPress: () => setFolded(!settings.panelFolded.peek()),
+    onPress: () => setPinned(!settings.panelPinned.peek()),
   })
   const menuKey = key({
     icon: 'more',
@@ -692,9 +692,9 @@ export function editorScene(
     ...registries.panels.list().map(panel => panel.id),
   ]
 
-  const setFolded = (isFolded: boolean): void => {
+  const setPinned = (isPinned: boolean): void => {
     isSheetOpen.value = false
-    settings.panelFolded.value = isFolded
+    settings.panelPinned.value = isPinned
   }
 
   const renderTabs = (): void => {
@@ -1062,12 +1062,12 @@ export function editorScene(
   }
 
   scope.effect(() => {
-    const isFolded = settings.panelFolded.value
-    const title = t(isFolded ? 'panel.pin' : 'panel.fold')
+    const isPinned = settings.panelPinned.value
+    const title = t(isPinned ? 'panel.fold' : 'panel.pin')
 
     panelKey.title = title
     panelKey.setAttribute('aria-label', title)
-    setPressed(panelKey, !isFolded)
+    setPressed(panelKey, isPinned)
     showPanelLayout()
   })
 
@@ -1258,7 +1258,7 @@ export function editorScene(
       case 'h':
         if (sheetQuery.matches) return false
 
-        setFolded(!settings.panelFolded.peek())
+        setPinned(!settings.panelPinned.peek())
 
         return true
       case ' ':

@@ -516,12 +516,12 @@
 
 .float-bar {
   position: absolute;
-  left: 50%;
+  left: calc(50% + var(--fit-shift, 0px));
   top: 10px;
   transform: translateX(-50%);
   display: flex;
   gap: 4px;
-  max-width: calc(100% - 8px);
+  max-width: calc(100% - 8px - var(--fit-side) * 2);
   padding: 5px;
   border-radius: var(--radius-m);
   background: rgb(255 253 249 / 96%);
@@ -581,7 +581,7 @@
 
 .stage-hint {
   position: absolute;
-  left: 50%;
+  left: calc(50% + var(--fit-shift, 0px));
   top: 50%;
   transform: translate(-50%, -50%);
   color: rgb(124 86 54 / 55%);
@@ -1277,12 +1277,10 @@
 
 :where(.is-sheet) .ed-side,
 .editor[data-hand='left']:where(.is-sheet) .ed-side {
-  position: fixed;
-  right: calc(var(--side-tab) + 10px);
-  top: calc(var(--top-height) + 10px);
-  bottom: 10px;
+  grid-area: stage;
+  justify-self: end;
   width: min(320px, calc(100vw - var(--side-tab) - 26px));
-  margin: 0;
+  margin: 10px calc(var(--side-tab) + 10px) 15px 0;
   z-index: 20;
   transform: translateX(calc(100% + 80px));
   visibility: hidden;
@@ -1292,8 +1290,8 @@
 }
 
 .editor[data-hand='left']:where(.is-sheet) .ed-side {
-  left: calc(var(--side-tab) + 10px);
-  right: auto;
+  justify-self: start;
+  margin: 10px 0 15px calc(var(--side-tab) + 10px);
   transform: translateX(calc(-100% - 80px));
 }
 
@@ -1581,6 +1579,8 @@
 
 :where(.is-phone) .ed-side,
 .editor[data-hand='left']:where(.is-phone) .ed-side {
+  position: fixed;
+  margin: 0;
   left: 0;
   right: 0;
   top: auto;
