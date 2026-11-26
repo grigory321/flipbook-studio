@@ -78,8 +78,8 @@ const SQUARE_3_POINTS = [
   0, 0, 0, -1, 0, 1, 1, 0, 1, 1, 1, -1, -1, 0, -1, 1, -1, -1,
 ]
 
-const MAX_X = 255
-const MAX_Y = 191
+const DSI_WIDTH = 256
+const DSI_HEIGHT = 192
 const JUMP_LIMIT = 30
 const HOLD_LIMIT = 80
 
@@ -179,6 +179,9 @@ export class DsiPen {
   private readonly brush: number
   private readonly paintRadius: number
   private readonly patternErase: boolean
+  private readonly maxX: number
+  private readonly maxY: number
+  private readonly jumpLimit: number
 
   isStarting = false
 
@@ -206,6 +209,11 @@ export class DsiPen {
     this.brush = brush
     this.paintRadius = options.paintRadius ?? 1
     this.patternErase = options.patternErase ?? false
+    this.maxX = surface.width - 1
+    this.maxY = surface.height - 1
+    this.jumpLimit =
+      JUMP_LIMIT *
+      Math.max(1, surface.width / DSI_WIDTH, surface.height / DSI_HEIGHT)
   }
 
   down(x: number, y: number): void {
@@ -251,7 +259,7 @@ export class DsiPen {
 
     let distance = Math.floor(Math.hypot(deltaX, deltaY))
 
-    if (distance - this.lastDistance < JUMP_LIMIT) isJump = false
+    if (distance - this.lastDistance < this.jumpLimit) isJump = false
     else this.isHolding = false
 
     if (isJump || this.isHolding) {
@@ -631,11 +639,11 @@ export class DsiPen {
     const shiftEndX = (random() % range) - offset
     const shiftEndY = (random() % range) - offset
 
-    this.x = clamp(startX + shiftStartX, 0, MAX_X)
-    this.y = clamp(startY + shiftStartY, 0, MAX_Y)
+    this.x = clamp(startX + shiftStartX, 0, this.maxX)
+    this.y = clamp(startY + shiftStartY, 0, this.maxY)
     this.thinLine(
-      clamp(x + shiftEndX, 0, MAX_X),
-      clamp(y + shiftEndY, 0, MAX_Y),
+      clamp(x + shiftEndX, 0, this.maxX),
+      clamp(y + shiftEndY, 0, this.maxY),
       true,
     )
     this.x = x
@@ -682,11 +690,11 @@ export class DsiPen {
       keepAlong(point, deltaX, deltaY)
       keepAlong(shift, deltaX, deltaY)
 
-      this.x = clamp(startX + point[0], 0, MAX_X)
-      this.y = clamp(startY + point[1], 0, MAX_Y)
+      this.x = clamp(startX + point[0], 0, this.maxX)
+      this.y = clamp(startY + point[1], 0, this.maxY)
       this.thinLine(
-        clamp(x + point[0] + shift[0], 0, MAX_X),
-        clamp(y + point[1] + shift[1], 0, MAX_Y),
+        clamp(x + point[0] + shift[0], 0, this.maxX),
+        clamp(y + point[1] + shift[1], 0, this.maxY),
         true,
       )
     }

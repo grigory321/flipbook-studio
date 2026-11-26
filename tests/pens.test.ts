@@ -392,3 +392,68 @@ test('うごメモのペン: ふつうのノートで選べて、くっきりし
   assert.ok(!editor.penChoices().some(spec => spec.id === 'ugomemo.pen3'))
   assert.equal(editor.currentPen().engine, 'free')
 })
+
+test('うごメモのペン: 大きいノートで速く引いても途切れず、描いた場所から離れない', () => {
+  const host = new PluginHost()
+
+  host.define(UGOMEMO_PEN_PLUGIN)
+
+  const note = Note.create({
+    title: 't',
+    profile: 'free',
+    width: 1280,
+    height: 720,
+  })
+  const editor = new Editor(note)
+  const pen = tool('pen')
+  const frame = 1000 / 60
+  const width = 1280
+
+  const draw = (id: string, fromX: number, toX: number, y: number) => {
+    editor.penId.value = id
+    editor.planes[0].fill(0)
+
+    let time = 0
+
+    pen.down(editor, point(fromX, y, time))
+
+    for (let x = fromX + 150; x <= toX; x += 150) {
+      time += frame
+      pen.move(editor, point(x, y, time))
+      pen.tick?.(editor, time)
+    }
+
+    pen.up(editor, point(toX, y, time + frame))
+
+    const plane = editor.planes[0]
+    const columns = new Set<number>()
+    let isNearStroke = true
+
+    plane.forEach((value, index) => {
+      if (value === 0) return
+
+      const x = index % width
+      const pixelY = Math.floor(index / width)
+
+      columns.add(x)
+
+      if (x < fromX - 20 || x > toX + 20 || Math.abs(pixelY - y) > 20) {
+        isNearStroke = false
+      }
+    })
+
+    return { columns, isNearStroke }
+  }
+
+  const line = draw('ugomemo.pen3', 40, 1240, 360)
+
+  for (let x = 40; x <= 1240; x++) {
+    assert.ok(line.columns.has(x), `${x} 列目まで線がつながる`)
+  }
+
+  assert.ok(line.isNearStroke)
+
+  for (const id of ['ugomemo.jitter', 'ugomemo.crayon2']) {
+    assert.ok(draw(id, 900, 1200, 600).isNearStroke, id)
+  }
+})
